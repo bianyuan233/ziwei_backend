@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>服务器健康检查</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .status {
+            text-align: center;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .status-ok {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            margin: 20px auto;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>服务器健康检查</h1>
+        
+        <div id="status" class="status">
+            <p>点击下方按钮检查服务器状态</p>
+        </div>
+        
+        <div id="info" style="display: none;">
+            <div class="info-box">
+                <strong>状态:</strong> <span id="health-status"></span>
+            </div>
+            <div class="info-box">
+                <strong>时间戳:</strong> <span id="timestamp"></span>
+            </div>
+            <div class="info-box">
+                <strong>运行时间:</strong> <span id="uptime"></span> 秒
+            </div>
+            <div class="info-box">
+                <strong>消息:</strong> <span id="message"></span>
+            </div>
+        </div>
+        
+        <button onclick="checkHealth()">检查服务器健康状态</button>
+        
+        <div class="info-box">
+            <strong>API 端点:</strong> <code>/api/health</code><br>
+            <strong>方法:</strong> GET<br>
+            <strong>说明:</strong> 返回服务器健康状态和时间戳
+        </div>
+    </div>
+
+    <script>
+        async function checkHealth() {
+            const statusDiv = document.getElementById('status');
+            const infoDiv = document.getElementById('info');
+            
+            // 显示加载状态
+            statusDiv.innerHTML = '<div class="loading">正在检查服务器状态...</div>';
+            infoDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusDiv.className = 'status status-ok';
+                    statusDiv.innerHTML = `<h2>✅ 服务器运行正常</h2>`;
+                    
+                    document.getElementById('health-status').textContent = data.status;
+                    document.getElementById('timestamp').textContent = new Date(data.timestamp).toLocaleString();
+                    document.getElementById('uptime').textContent = data.uptime.toFixed(2);
+                    document.getElementById('message').textContent = data.message;
+                    
+                    infoDiv.style.display = 'block';
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = `<h3>❌ 检查失败</h3><p>${error.message}</p>`;
+                infoDiv.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
