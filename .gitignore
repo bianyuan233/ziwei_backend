@@ -1,30 +1,11 @@
-# 依赖目录
+# 忽略依赖包（不需要提交）
 node_modules/
 
-# 环境变量文件（敏感信息）
-.env
-.env.local
-.env.*.local
-
-# 数据库文件
-*.db
-*.sqlite
-*.sqlite3
-
-# 日志文件
+# 忽略日志和临时文件
 *.log
-logs/
+.tmp/
+.cache/
 
-# 操作系统文件
+# 忽略系统文件
 .DS_Store
 Thumbs.db
-
-# IDE 配置
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# 临时文件
-*.tmp
-temp/
