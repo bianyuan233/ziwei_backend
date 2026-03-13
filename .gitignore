@@ -9,3 +9,15 @@ node_modules/
 # 忽略系统文件
 .DS_Store
 Thumbs.db
+
+# 忽略环境变量文件（包含敏感信息）
+.env
+*.env.local
+
+# 忽略数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 忽略测试结果日志
+testResult*.log
