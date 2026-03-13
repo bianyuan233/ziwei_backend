@@ -15,7 +15,7 @@ Thumbs.db
 *.env.local
 
 # 忽略数据库文件
-*.db
+#*.db
 *.sqlite
 *.sqlite3
 
