@@ -13,11 +13,11 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net", "cdnjs.cloudflare.com"],
+            styleSrc: ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com"],
             imgSrc: ["'self'", "data:", "blob:"],
-            connectSrc: ["'self'"],
-            fontSrc: ["'self'"],
+            connectSrc: ["'self'", "http://localhost:*", "ws://localhost:*"],
+            fontSrc: ["'self'", "cdnjs.cloudflare.com"],
             objectSrc: ["'none'"],
             mediaSrc: ["'self'"],
             frameSrc: ["'none'"],
@@ -29,15 +29,41 @@ app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// 根路径 - 显示离心机监控系统
 app.get('/', (req, res) => {
+    const centrifugePath = path.join(__dirname, 'public/index.html');
+    if (fs.existsSync(centrifugePath)) {
+        res.sendFile(centrifugePath);
+    } else {
+        res.json({
+            message: '离心机监控系统页面未找到',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// /ziweibackend 路径 - 显示原始CentriLog_schema页面
+app.get('/ziweibackend', (req, res) => {
     const htmlPath = path.join(__dirname, 'CentriLog_schema.html');
     if (fs.existsSync(htmlPath)) {
         res.sendFile(htmlPath);
     } else {
         res.json({
-            message: '欢迎使用小程序后端API服务',
-            timestamp: new Date().toISOString(),
-            version: '1.0.0'
+            message: 'CentriLog页面未找到',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// /ziweibackend/ 也指向同一页面
+app.get('/ziweibackend/', (req, res) => {
+    const htmlPath = path.join(__dirname, 'CentriLog_schema.html');
+    if (fs.existsSync(htmlPath)) {
+        res.sendFile(htmlPath);
+    } else {
+        res.json({
+            message: 'CentriLog页面未找到',
+            timestamp: new Date().toISOString()
         });
     }
 });
@@ -46,6 +72,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // 小程序API路由
 app.use('/api', require('./routes/api'));
+
+// 离心机监控API路由
+app.use('/api', require('./routes/centrifuge'));
 
 // 错误处理中间件
 app.use((err, req, res, next) => {

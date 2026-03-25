@@ -1,1724 +1,258 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="zh-CN">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>CentriLog DB Schema (inferred)</title>
-<style>
-:root {
-  --bg:#0b0f17; --fg:#e7eefc; --muted:#a9b7d1; --card:#121a2a; --line:#22304b;
-  --pk:#34d399; --fk:#60a5fa; --warn:#fbbf24;
-  --purple-bg:#0d0812; --purple-card:#1a0f24; --purple-line:#2d1f3d; --purple-accent:#a855f7; --purple-glow:#c084fc;
-}
-*{box-sizing:border-box}
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--fg)}
-body.purple-mode{background:var(--purple-bg)}
-header{padding:28px 20px;border-bottom:1px solid var(--line);background:linear-gradient(180deg, #0b0f17, #0b0f17 40%, #0d1320)}
-header.purple-header{background:linear-gradient(180deg, #0d0812, #0d0812 40%, #150a1e);border-bottom-color:var(--purple-line)}
-h1{margin:0 0 6px 0;font-size:22px}
-p{margin:8px 0;color:var(--muted);line-height:1.45}
-.container{max-width:1200px;margin:0 auto;padding:18px 16px 42px}
-.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0 18px}
-input[type="search"]{flex:1;min-width:220px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#0f1729;color:var(--fg)}
-input[type="search"].purple-input{background:#1a0f24;border-color:var(--purple-line)}
-.tabs{display:flex;gap:8px;flex-wrap:wrap}
-button.tab{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#0f1729;color:var(--fg);cursor:pointer;transition:all .2s}
-button.tab:hover{background:#1a2540}
-button.tab.active{border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.25) inset}
-button.main-tab{padding:12px 20px;font-size:14px;font-weight:600;border-radius:12px;border:2px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;transition:all .3s}
-button.main-tab:hover{background:rgba(59,130,246,.1);border-color:#3b82f6;color:var(--fg)}
-button.main-tab.active{background:linear-gradient(135deg,#3b82f6,#2563eb);border-color:#3b82f6;color:#fff;box-shadow:0 4px 20px rgba(59,130,246,.4)}
-button.main-tab.purple-tab:hover{background:rgba(168,85,247,.1);border-color:var(--purple-accent)}
-button.main-tab.purple-tab.active{background:linear-gradient(135deg,#a855f7,#7c3aed);border-color:var(--purple-accent);box-shadow:0 4px 20px rgba(168,85,247,.4)}
-.note{padding:10px 12px;border:1px dashed var(--line);border-radius:12px;color:var(--muted)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 14px 16px;margin:14px 0;box-shadow:0 12px 30px rgba(0,0,0,.22)}
-.cardhead{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
-.card h2{margin:0;font-size:18px}
-.small{color:var(--muted);font-size:12px}
-.grid{display:grid;grid-template-columns: 1.2fr .8fr;gap:14px;margin-top:10px}
-@media (max-width: 980px){.grid{grid-template-columns:1fr}}
-table{width:100%;border-collapse:collapse}
-th,td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
-th{text-align:left;color:#cfe0ff;font-weight:600;font-size:12px;letter-spacing:.02em;text-transform:uppercase}
-td.coltype{color:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px}
-td.colname code, .rels code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
-.badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:11px;margin-right:6px;border:1px solid transparent}
-.badge.pk{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.35);color:var(--pk)}
-.badge.fk{background:rgba(96,165,250,.12);border-color:rgba(96,165,250,.35);color:var(--fk)}
-.fkto{color:var(--muted);font-size:12px}
-.rels{display:grid;gap:12px}
-.relblock{border:1px solid var(--line);border-radius:14px;padding:10px 10px 12px;background:#0f1729}
-.reltitle{font-weight:650;margin-bottom:8px}
-.relblock ul{margin:0;padding-left:18px;color:var(--muted)}
-.relblock li{margin:4px 0}
-.diagramwrap{border:1px solid var(--line);border-radius:16px;padding:12px;background:#0f1729}
-.mermaid{background:#0f1729}
-footer{margin-top:18px;color:var(--muted);font-size:12px}
-.main-tabs{display:flex;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--line)}
-.purple-container{display:none}
-.purple-container.active{display:block}
-.purple-card{background:linear-gradient(145deg,rgba(168,85,247,.05),rgba(124,58,237,.02));border:1px solid var(--purple-line);border-radius:16px;padding:20px;margin:14px 0;box-shadow:0 8px 32px rgba(168,85,247,.1),inset 0 1px 0 rgba(255,255,255,.05)}
-.purple-card:hover{border-color:rgba(168,85,247,.4);box-shadow:0 12px 40px rgba(168,85,247,.15)}
-.purple-select{padding:12px 16px;border-radius:12px;border:2px solid var(--purple-line);background:var(--purple-card);color:var(--fg);font-size:14px;cursor:pointer;min-width:200px;transition:all .2s}
-.purple-select:hover{border-color:var(--purple-accent)}
-.purple-select:focus{outline:none;border-color:var(--purple-accent);box-shadow:0 0 0 3px rgba(168,85,247,.2)}
-.purple-table{width:100%;border-collapse:collapse;margin-top:16px}
-.purple-table th{background:linear-gradient(90deg,rgba(168,85,247,.15),rgba(124,58,237,.1));color:var(--purple-glow);padding:12px 14px;text-align:left;font-weight:600;border-bottom:2px solid var(--purple-line)}
-.purple-table td{padding:10px 14px;border-bottom:1px solid var(--purple-line);color:var(--fg)}
-.purple-table tr:hover td{background:rgba(168,85,247,.05)}
-.purple-table tr:last-child td{border-bottom:none}
-.purple-title{font-size:24px;font-weight:700;background:linear-gradient(135deg,#a855f7,#c084fc,#e879f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin:0 0 8px 0}
-.purple-subtitle{color:var(--muted);font-size:14px;margin:0 0 20px 0}
-.purple-stats{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px}
-.purple-stat{background:linear-gradient(145deg,rgba(168,85,247,.1),rgba(124,58,237,.05));border:1px solid var(--purple-line);border-radius:12px;padding:16px 20px;min-width:140px}
-.purple-stat-value{font-size:28px;font-weight:700;color:var(--purple-glow)}
-.purple-stat-label{font-size:12px;color:var(--muted);margin-top:4px}
-.purple-loading{display:flex;align-items:center;justify-content:center;padding:60px;color:var(--purple-accent)}
-.purple-loading::after{content:'';width:40px;height:40px;border:3px solid var(--purple-line);border-top-color:var(--purple-accent);border-radius:50%;animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.purple-pagination{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:20px;flex-wrap:wrap}
-.purple-page-btn{padding:8px 14px;border-radius:8px;border:1px solid var(--purple-line);background:var(--purple-card);color:var(--fg);cursor:pointer;transition:all .2s}
-.purple-page-btn:hover{border-color:var(--purple-accent);background:rgba(168,85,247,.1)}
-.purple-page-btn.active{background:var(--purple-accent);border-color:var(--purple-accent);color:#fff}
-.purple-page-btn:disabled{opacity:.5;cursor:not-allowed}
-.purple-info{color:var(--muted);font-size:13px}
-.schema-container{display:block}
-.schema-container.hidden{display:none}
-</style>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>离心机数字化监控系统V1.0.0</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-<header id="mainHeader">
-  <div class="container" style="padding:0 16px;">
-    <h1 id="mainTitle">CentriLog DB Schema (from CentriLog.data)</h1>
-    <p id="mainDesc">
-      This page was generated by inspecting the SQLite schema and <strong>inferring</strong> table relationships mainly from column names like <code>*_ID</code>,
-      plus common audit fields such as <code>*_BY</code> (mapped to <code>USERS</code>).
-      Because there are no declared foreign keys in the database DDL, treat relationships as best-effort.
-    </p>
-  </div>
-</header>
+    <div class="app-container">
+        <!-- 顶部导航栏 -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="menu-toggle" id="menuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="system-title">离心机数字化监控系统V1.0.0</h1>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span class="username">这是一个用户名</span>
+                    <i class="fas fa-caret-down"></i>
+                </div>
+                <div class="window-controls">
+                    <button class="win-btn minimize"><i class="fas fa-minus"></i></button>
+                    <button class="win-btn maximize"><i class="far fa-square"></i></button>
+                    <button class="win-btn close"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+        </header>
 
-<div class="container">
-  <div class="main-tabs">
-    <button class="main-tab active" data-page="schema">📊 Schema Diagram</button>
-    <button class="main-tab purple-tab" data-page="data">🗄️ Data Browser</button>
-  </div>
+        <!-- 主体内容区 -->
+        <div class="main-content">
+            <!-- 左侧导航菜单 -->
+            <aside class="sidebar" id="sidebar">
+                <nav class="nav-menu">
+                    <ul>
+                        <li class="nav-item active" data-page="dashboard">
+                            <a href="#">
+                                <i class="fas fa-chart-bar"></i>
+                                <span class="nav-text">数据评估</span>
+                                <i class="fas fa-chevron-down submenu-arrow"></i>
+                            </a>
+                            <ul class="submenu">
+                                <li class="submenu-item active" data-view="operation-eval">
+                                    <a href="#">运行数据评估</a>
+                                </li>
+                                <li class="submenu-item" data-view="sample-eval">
+                                    <a href="#">样本数据评估</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item" data-page="records">
+                            <a href="#">
+                                <i class="fas fa-file-alt"></i>
+                                <span class="nav-text">电子记录</span>
+                            </a>
+                        </li>
+                        <li class="nav-item" data-page="management">
+                            <a href="#">
+                                <i class="fas fa-cog"></i>
+                                <span class="nav-text">管理</span>
+                            </a>
+                        </li>
+                        <li class="nav-item" data-page="settings">
+                            <a href="#">
+                                <i class="fas fa-sliders-h"></i>
+                                <span class="nav-text">设置</span>
+                            </a>
+                        </li>
+                        <li class="nav-item" data-page="help">
+                            <a href="#">
+                                <i class="fas fa-info-circle"></i>
+                                <span class="nav-text">帮助</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </aside>
 
-  <div id="schemaPage" class="schema-container">
-  <div class="toolbar">
-    <input id="search" type="search" placeholder="Filter tables (e.g. RUN, PRODUCT, USER, SETUP)"/>
-    <div class="tabs">
-      <button class="tab active" data-target="core">Diagram: Core</button>
-      <button class="tab" data-target="all">Diagram: All (incl. audit)</button>
+            <!-- 右侧内容区 -->
+            <main class="content-area">
+                <!-- 工具栏 -->
+                <div class="toolbar">
+                    <div class="toolbar-left">
+                        <button class="btn btn-primary" id="startCommBtn">
+                            <i class="fas fa-play"></i> 开始通信
+                        </button>
+                        <button class="btn btn-danger" id="stopCommBtn">
+                            <i class="fas fa-stop"></i> 结束通信
+                        </button>
+                    </div>
+                    <div class="toolbar-center">
+                        <div class="search-box">
+                            <input type="text" id="searchInput" placeholder="请输入序列号/ip地址/离心机名称查找设备...">
+                            <button class="search-btn" id="searchBtn">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            <div class="search-dropdown" id="searchDropdown">
+                                <div class="search-item">
+                                    <span class="search-label">名称:</span>
+                                    <span class="search-value">12345678910111213141</span>
+                                </div>
+                                <div class="search-item">
+                                    <span class="search-label">名称:</span>
+                                    <span class="search-value">二号厂房12345</span>
+                                </div>
+                                <div class="search-item">
+                                    <span class="search-label">序列号:</span>
+                                    <span class="search-value">12345678</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 设备筛选标签 -->
+                <div class="filter-tabs">
+                    <button class="filter-tab active" data-filter="all">全部设备</button>
+                    <button class="filter-tab" data-filter="MX30R">MX30R</button>
+                    <button class="filter-tab" data-filter="other">另一个离心机类型</button>
+                </div>
+
+                <!-- 页面内容容器 -->
+                <div class="page-container">
+                    <!-- 仪表盘视图 - 设备卡片网格 -->
+                    <div class="view-section active" id="dashboardView">
+                        <div class="device-grid" id="deviceGrid">
+                            <!-- 设备卡片将通过JS动态生成 -->
+                        </div>
+                    </div>
+
+                    <!-- 设备详情视图 -->
+                    <div class="view-section" id="deviceDetailView">
+                        <div class="detail-container">
+                            <h2 class="detail-title">离心机名称: <span id="detailDeviceName">12345678901234567890</span></h2>
+                            <div class="detail-grid">
+                                <div class="detail-card">
+                                    <h3>基本信息:</h3>
+                                    <div class="info-row">
+                                        <span class="label">类 型:</span>
+                                        <span class="value" id="detailType">MX30R</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">名 称:</span>
+                                        <span class="value" id="detailName">这里最多可以放20个字符,希望长的话可以做到自适应换行</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">序列号:</span>
+                                        <span class="value" id="detailSerial">123456789</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">ip地址:</span>
+                                        <span class="value" id="detailIp">162.166.166.166</span>
+                                    </div>
+                                </div>
+                                <div class="detail-card">
+                                    <h3>实时参数:</h3>
+                                    <div class="info-row">
+                                        <span class="label">转速:</span>
+                                        <span class="value" id="realtimeSpeed">9370 rpm</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">时间:</span>
+                                        <span class="value" id="realtimeTime">0 min</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">温度:</span>
+                                        <span class="value" id="realtimeTemp">20 ℃</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">程序名:</span>
+                                        <span class="value" id="realtimeProgram">这是程序条码名,限定16位字符.</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">状 态:</span>
+                                        <span class="value status-running" id="realtimeStatus">正在运行</span>
+                                    </div>
+                                </div>
+                                <div class="detail-card">
+                                    <h3>设置参数:</h3>
+                                    <div class="info-row">
+                                        <span class="label">转速:</span>
+                                        <span class="value" id="settingSpeed">10000 rpm</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">时间:</span>
+                                        <span class="value" id="settingTime">30 min</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">温度:</span>
+                                        <span class="value" id="settingTemp">20 ℃</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">加速挡位:</span>
+                                        <span class="value" id="settingAccel">9</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">减速挡位:</span>
+                                        <span class="value" id="settingDecel">10</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">无刹车转速:</span>
+                                        <span class="value" id="settingNoBrake">500 rpm</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="detail-actions">
+                                <button class="btn btn-primary" id="backToDashboard">返回概览页面</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 设备列表视图 -->
+                    <div class="view-section" id="deviceListView">
+                        <div class="list-container">
+                            <h2 class="list-title">离心机设备列表</h2>
+                            <div class="table-wrapper">
+                                <table class="device-table" id="deviceTable">
+                                    <thead>
+                                        <tr>
+                                            <th>序号</th>
+                                            <th>离心机名称</th>
+                                            <th>离心机序列号</th>
+                                            <th>ip地址</th>
+                                            <th>状态</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="deviceTableBody">
+                                        <!-- 表格数据将通过JS动态生成 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- 底部状态栏 -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <span id="systemStatus">系统状态栏</span>
+            </div>
+            <div class="status-right">
+                <span id="currentTime"></span>
+            </div>
+        </footer>
     </div>
-  </div>
 
-  <div class="note">
-    Tables: <strong>24</strong> · Inferred relationships: <strong>50</strong>
-    (Core: 28 · Audit-to-USERS: 22)
-  </div>
+    <!-- 通信状态提示 -->
+    <div class="toast-container" id="toastContainer"></div>
 
-  <div class="diagramwrap" id="diagram-core">
-    <div class="mermaid">
-erDiagram
-  ACCESS_HISTORY {
-    INTEGER ID PK
-    TEXT LOG_ON_NAME
-    INTEGER USER_ID FK
-    REAL TIME_STAMP
-    INTEGER LOGGED_EVENT
-    INTEGER ERROR_CODE
-    TEXT FINGERPRINT
-  }
-  BAGS {
-    INTEGER ID PK
-    INTEGER RUN_ID FK
-    TEXT BARCODE
-    INTEGER BAG_RESULT_ID FK
-    TEXT FINGERPRINT
-  }
-  BAG_FINDINGS {
-    INTEGER ID PK
-    INTEGER BAG_ID FK
-    INTEGER BAG_RESULT_ID FK
-    REAL TIME_CREATED
-    INTEGER CREATED_BY FK
-    TEXT COMMENT
-    TEXT FINGERPRINT
-  }
-  BAG_RESULTS {
-    INTEGER ID PK
-    TEXT BARCODE
-    TEXT DESCRIPTION
-    FLOAT TIME_CREATED
-    INTEGER CREATED_BY FK
-    FLOAT TIME_MODIFIED
-    INTEGER MODIFIED_BY FK
-    FLOAT TIME_DELETED
-    INTEGER DELETED_BY FK
-    REAL TIME_ACTIVATED
-    INTEGER ACTIVATED_BY FK
-    INTEGER DATASET_ACTIVE
-    INTEGER PARENT_DATASET
-    TEXT FINGERPRINT
-  }
-  BAG_SCHEDULES {
-    INTEGER ID PK
-    TEXT BAG_BARCODE
-    TEXT PRODUCT_BARCODE
-    REAL TIME_INVALIDATED
-    TEXT FINGERPRINT
-  }
-  BUCKET_TYPES {
-    INTEGER ID PK
-    TEXT NAME
-    TEXT ORDER_NUMBER
-    INTEGER SAMPLE_COUNT
-    TEXT PICTURE
-  }
-  DEVICE_CONFIGURATIONS {
-    INTEGER ID PK
-    TEXT NAME
-    INTEGER SLOW_START
-    INTEGER SLOW_STOP
-    INTEGER BRAKE_OFF
-    INTEGER ACE_TIMING
-    INTEGER AT_SPEED_TIMER
-    INTEGER TIME_IN_SECONDS
-    INTEGER RUN_DELAY
-    INTEGER DELTA_TEMP
-    INTEGER UNDER_TEMP
-    INTEGER OVER_TEMP
-    INTEGER HIGHRES_RADIUS
-    INTEGER AUTO_ROTOR_ID
-    INTEGER SHARED_DISPLAY
-    INTEGER QC_RUN
-    INTEGER MAX_SETTINGS_STEPS
-  }
-  DEVICE_TYPES {
-    INTEGER ID PK
-    TEXT NAME
-    INTEGER INTERFACE_CONFIG
-    INTEGER WINDOW_STYLE
-    TEXT PICTURE
-  }
-  EMULATION_TYPES {
-    INTEGER ID PK
-    TEXT NAME
-  }
-  INSTRUMENTS {
-    INTEGER ID PK
-    INTEGER DEVICETYPE_ID FK
-    INTEGER EMULATIONTYPE_ID FK
-    INTEGER OPERATION_MODE
-    TEXT DESCRIPTION
-    TEXT SERIAL_NUMBER
-    INTEGER USE_FIELDBUS
-    INTEGER FIELDBUS_ADDRESS
-    TEXT IP_ADDRESS
-    INTEGER USER_UPDATE
-    INTEGER PROGRAM_UPDATE
-    INTEGER BAG_RESULT_UPDATE
-    INTEGER RUN_RESULT_UPDATE
-    INTEGER BAG_SCHEDULE_UPDATE
-    INTEGER BCR_OPTIONS_UPDATE
-    INTEGER GMP_CONFIG_UPDATE
-    INTEGER LOCK_EVENT_UPDATE
-    INTEGER PIN_SETUP_UPDATE
-    INTEGER USER_LOCKOUT_UPDATE
-    INTEGER USER_UNLOCK_UPDATE
-    INTEGER DEVICE_CLOCK_UPDATE
-    REAL TIME_CREATED
-    INTEGER CREATED_BY FK
-    REAL TIME_MODIFIED
-    INTEGER MODIFIED_BY FK
-    REAL TIME_DELETED
-    INTEGER DELETED_BY FK
-    REAL TIME_ACTIVATED
-    INTEGER ACTIVATED_BY FK
-    INTEGER DATASET_ACTIVE
-    INTEGER PARENT_DATASET
-    TEXT FINGERPRINT
-  }
-  LIMITS {
-    INTEGER ID PK
-    INTEGER P1_TIME
-    INTEGER P1_TEMP_HI
-    INTEGER P1_TEMP_LO
-    INTEGER P2_ACC_SPEED_HI_ABS
-    INTEGER P2_ACC_SPEED_HI_REL
-    INTEGER P2_ACC_SPEED_LO_ABS
-    INTEGER P2_ACC_SPEED_LO_REL
-    INTEGER P2_HLD_SPEED_HI_ABS
-    INTEGER P2_HLD_SPEED_HI_REL
-    INTEGER P2_HLD_SPEED_LO_ABS
-    INTEGER P2_HLD_SPEED_LO_REL
-    INTEGER P2_DEC_SPEED_HI_ABS
-    INTEGER P2_DEC_SPEED_HI_REL
-    INTEGER P2_DEC_SPEED_LO_ABS
-    INTEGER P2_DEC_SPEED_LO_REL
-    INTEGER P2_TIME_HI_ABS
-    INTEGER P2_TIME_LO_ABS
-    INTEGER P2_ACE_HI_ABS
-    INTEGER P2_ACE_LO_ABS
-    INTEGER P2_TEMP_HI
-    INTEGER P2_TEMP_LO
-    INTEGER P3_TIME
-    INTEGER P3_TEMP_HI
-    INTEGER P3_TEMP_LO
-    TEXT FINGERPRINT
-  }
-  PRODUCTS {
-    INTEGER ID PK
-    TEXT BARCODE
-    TEXT SCREEN_NAME
-    TEXT DESCRIPTION
-    INTEGER COLOR_CODE
-    INTEGER SETUP_ID FK
-    INTEGER SETTINGS_ID
-    INTEGER LIMITS_ID
-    REAL TIME_CREATED
-    INTEGER CREATED_BY FK
-    REAL TIME_MODIFIED
-    INTEGER MODIFIED_BY FK
-    REAL TIME_DELETED
-    INTEGER DELETED_BY FK
-    REAL TIME_ACTIVATED
-    INTEGER ACTIVATED_BY FK
-    INTEGER DATASET_ACTIVE
-    INTEGER PARENT_DATASET
-    TEXT FINGERPRINT
-  }
-  QC_RUNS {
-    INTEGER ID PK
-    INTEGER INSTRUMENT_ID FK
-    INTEGER START_USER_ID FK
-    INTEGER END_USER_ID FK
-    REAL START_TIME
-    REAL END_TIME
-    INTEGER FINAL_STATE
-    TEXT FINGERPRINT
-  }
-  ROTOR_TYPES {
-    INTEGER ID PK
-    TEXT NAME
-    TEXT ORDER_NUMBER
-    INTEGER ROTOR_CODE
-    INTEGER CONTAINER_COUNT
-    TEXT PICTURE
-  }
-  RUNS {
-    INTEGER ID PK
-    INTEGER INSTRUMENT_ID FK
-    INTEGER LOAD_USER_ID FK
-    INTEGER UNLOAD_USER_ID FK
-    INTEGER PRODUCT_ID FK
-    REAL PROCESS_START
-    REAL RUN_START
-    REAL RUN_END
-    REAL PROCESS_END
-    INTEGER FINAL_STATE
-    INTEGER RUN_RESULT_ID FK
-    TEXT LOGFILE
-    INTEGER LOGFILE_PENDING
-    INTEGER EXPORT_PENDING
-    TEXT FINGERPRINT
-  }
-  RUN_ERRORS {
-    INTEGER ID PK
-    INTEGER RUN_ID FK
-    REAL ERROR_TIME
-    INTEGER ERROR_CODE
-    INTEGER ERROR_VALUE
-    TEXT FINGERPRINT
-  }
-  RUN_FINDINGS {
-    INTEGER ID PK
-    INTEGER RUN_ID FK
-    INTEGER RUN_RESULT_ID FK
-    REAL TIME_CREATED
-    INTEGER CREATED_BY FK
-    TEXT COMMENT
-    TEXT FINGERPRINT
-  }
-  RUN_RESULTS {
-    INTEGER ID PK
-    TEXT BARCODE
-    TEXT DESCRIPTION
-    FLOAT TIME_CREATED
-    INTEGER CREATED_BY FK
-    FLOAT TIME_MODIFIED
-    INTEGER MODIFIED_BY FK
-    FLOAT TIME_DELETED
-    INTEGER DELETED_BY FK
-    REAL TIME_ACTIVATED
-    INTEGER ACTIVATED_BY FK
-    INTEGER DATASET_ACTIVE
-    INTEGER PARENT_DATASET
-    TEXT FINGERPRINT
-  }
-  RUN_REVIEWS {
-    INTEGER ID PK
-    INTEGER RUN_ID FK
-    REAL REVIEW_TIME
-    INTEGER REVIEW_CODE
-    INTEGER REVIEW_VALUE
-    TEXT FINGERPRINT
-  }
-  SETTINGS {
-    INTEGER ID PK
-    INTEGER ACCELERATION
-    INTEGER DECELERATION
-    INTEGER SPEED_RPM
-    INTEGER SPEED_RCF
-    INTEGER RUNTIME
-    INTEGER ACE_VALUE
-    INTEGER DELAY
-    INTEGER TEMPERATURE
-    INTEGER DELTA_TEMP
-    INTEGER UNDER_TEMP
-    INTEGER OVER_TEMP
-    INTEGER BRAKE_OFF
-    INTEGER SLOW_START_ACTIVE
-    INTEGER SLOW_STOP_ACTIVE
-    INTEGER RCF_VALUE_ACTIVE
-    INTEGER ACE_VALUE_ACTIVE
-    INTEGER HOLD_MODE_ACTIVE
-    INTEGER AT_SPEED_TIMER_ACTIVE
-    INTEGER DELAY_ACTIVE
-    INTEGER DELTA_TEMP_ACTIVE
-    INTEGER UNDER_TEMP_ACTIVE
-    INTEGER OVER_TEMP_ACTIVE
-    INTEGER BRAKE_OFF_ACTIVE
-    INTEGER NEXT_STEP
-    TEXT FINGERPRINT
-  }
-  SETTINGS_LIMITS {
-    INTEGER ID PK
-    INTEGER MIN_BSL
-    INTEGER MAX_BSL
-    INTEGER MIN_BRK
-    INTEGER MAX_BRK
-    INTEGER MIN_RPM
-    INTEGER MAX_RPM
-    INTEGER MIN_RCF
-    INTEGER MAX_RCF
-    INTEGER MIN_TIM
-    INTEGER MAX_TIM
-    INTEGER MIN_ACE
-    INTEGER MAX_ACE
-    INTEGER MIN_TMP
-    INTEGER MAX_TMP
-    INTEGER MIN_DEL
-    INTEGER MAX_DEL
-    INTEGER MIN_DLT
-    INTEGER MAX_DLT
-    INTEGER MIN_OTP
-    INTEGER MAX_OTP
-    INTEGER MIN_UTP
-    INTEGER MAX_UTP
-    INTEGER MIN_BOS
-    INTEGER MAX_BOS
-  }
-  SETUPS {
-    INTEGER ID PK
-    INTEGER DEVICETYPE_ID FK
-    INTEGER ROTORTYPE_ID FK
-    INTEGER BUCKETTYPE_ID FK
-    INTEGER EMULATIONTYPE_ID FK
-    TEXT FINGERPRINT
-  }
-  SETUP_TYPES {
-    INTEGER ID PK
-    INTEGER DEVICETYPE_ID FK
-    INTEGER EMULATIONTYPE_ID FK
-    INTEGER ROTORTYPE_ID FK
-    INTEGER BUCKETTYPE_ID FK
-    INTEGER CONFIGURATION_ID
-    INTEGER SETTINGS_LIMITS_ID
-    INTEGER ROTOR_IDENTIFIER
-    INTEGER ROTOR_RADIUS
-    TEXT PROFILE_DATA
-  }
-  USERS {
-    INTEGER ID PK
-    TEXT FIRST_NAME
-    TEXT LAST_NAME
-    INTEGER HAS_PC_ACCESS
-    TEXT LOG_ON_NAME
-    TEXT PASSWORD_HASH
-    INTEGER NEW_PSW_REQUESTED
-    REAL LAST_PSW_CHANGE
-    REAL NEXT_PSW_CHANGE
-    INTEGER PRIVILEGES
-    INTEGER LOGON_ATTEMPTS
-    REAL NEXT_LOGON_ATTEMPT
-    INTEGER OPERATES_CENTRIFUGE
-    TEXT USER_NAME
-    TEXT PIN_HASH
-    REAL LAST_PIN_CHANGE
-    INTEGER ACCESS_LEVEL
-    TEXT BARCODE
-    INTEGER DEVICE_ACCESS_STATE
-    REAL TIME_CREATED
-    INTEGER CREATED_BY FK
-    REAL TIME_MODIFIED
-    INTEGER MODIFIED_BY FK
-    REAL TIME_DELETED
-    INTEGER DELETED_BY FK
-    REAL TIME_ACTIVATED
-    INTEGER ACTIVATED_BY FK
-    INTEGER DATASET_ACTIVE
-    INTEGER PARENT_DATASET
-    TEXT FINGERPRINT
-  }
-  USERS ||--o{ ACCESS_HISTORY : "USER_ID"
-  BAG_RESULTS ||--o{ BAGS : "BAG_RESULT_ID"
-  RUNS ||--o{ BAGS : "RUN_ID"
-  BAGS ||--o{ BAG_FINDINGS : "BAG_ID"
-  BAG_RESULTS ||--o{ BAG_FINDINGS : "BAG_RESULT_ID"
-  DEVICE_TYPES ||--o{ INSTRUMENTS : "DEVICETYPE_ID"
-  EMULATION_TYPES ||--o{ INSTRUMENTS : "EMULATIONTYPE_ID"
-  SETUPS ||--o{ PRODUCTS : "SETUP_ID"
-  USERS ||--o{ QC_RUNS : "END_USER_ID"
-  INSTRUMENTS ||--o{ QC_RUNS : "INSTRUMENT_ID"
-  USERS ||--o{ QC_RUNS : "START_USER_ID"
-  INSTRUMENTS ||--o{ RUNS : "INSTRUMENT_ID"
-  USERS ||--o{ RUNS : "LOAD_USER_ID"
-  PRODUCTS ||--o{ RUNS : "PRODUCT_ID"
-  RUN_RESULTS ||--o{ RUNS : "RUN_RESULT_ID"
-  USERS ||--o{ RUNS : "UNLOAD_USER_ID"
-  RUNS ||--o{ RUN_ERRORS : "RUN_ID"
-  RUNS ||--o{ RUN_FINDINGS : "RUN_ID"
-  RUN_RESULTS ||--o{ RUN_FINDINGS : "RUN_RESULT_ID"
-  RUNS ||--o{ RUN_REVIEWS : "RUN_ID"
-  BUCKET_TYPES ||--o{ SETUPS : "BUCKETTYPE_ID"
-  DEVICE_TYPES ||--o{ SETUPS : "DEVICETYPE_ID"
-  EMULATION_TYPES ||--o{ SETUPS : "EMULATIONTYPE_ID"
-  ROTOR_TYPES ||--o{ SETUPS : "ROTORTYPE_ID"
-  BUCKET_TYPES ||--o{ SETUP_TYPES : "BUCKETTYPE_ID"
-  DEVICE_TYPES ||--o{ SETUP_TYPES : "DEVICETYPE_ID"
-  EMULATION_TYPES ||--o{ SETUP_TYPES : "EMULATIONTYPE_ID"
-  ROTOR_TYPES ||--o{ SETUP_TYPES : "ROTORTYPE_ID"
-    </div>
-  </div>
-
-  <div class="diagramwrap" id="diagram-all" style="display:none;margin-top:12px;">
-    <div class="mermaid">
-erDiagram
-  ACCESS_HISTORY {
-    INTEGER ID PK
-    TEXT LOG_ON_NAME
-    INTEGER USER_ID FK
-    REAL TIME_STAMP
-    INTEGER LOGGED_EVENT
-    INTEGER ERROR_CODE
-    TEXT FINGERPRINT
-  }
-  BAGS {
-    INTEGER ID PK
-    INTEGER RUN_ID FK
-    TEXT BARCODE
-    INTEGER BAG_RESULT_ID FK
-    TEXT FINGERPRINT
-  }
-  BAG_FINDINGS {
-    INTEGER ID PK
-    INTEGER BAG_ID FK
-    INTEGER BAG_RESULT_ID FK
-    REAL TIME_CREATED
-    INTEGER CREATED_BY FK
-    TEXT COMMENT
-    TEXT FINGERPRINT
-  }
-  BAG_RESULTS {
-    INTEGER ID PK
-    TEXT BARCODE
-    TEXT DESCRIPTION
-    FLOAT TIME_CREATED
-    INTEGER CREATED_BY FK
-    FLOAT TIME_MODIFIED
-    INTEGER MODIFIED_BY FK
-    FLOAT TIME_DELETED
-    INTEGER DELETED_BY FK
-    REAL TIME_ACTIVATED
-    INTEGER ACTIVATED_BY FK
-    INTEGER DATASET_ACTIVE
-    INTEGER PARENT_DATASET
-    TEXT FINGERPRINT
-  }
-  BAG_SCHEDULES {
-    INTEGER ID PK
-    TEXT BAG_BARCODE
-    TEXT PRODUCT_BARCODE
-    REAL TIME_INVALIDATED
-    TEXT FINGERPRINT
-  }
-  BUCKET_TYPES {
-    INTEGER ID PK
-    TEXT NAME
-    TEXT ORDER_NUMBER
-    INTEGER SAMPLE_COUNT
-    TEXT PICTURE
-  }
-  DEVICE_CONFIGURATIONS {
-    INTEGER ID PK
-    TEXT NAME
-    INTEGER SLOW_START
-    INTEGER SLOW_STOP
-    INTEGER BRAKE_OFF
-    INTEGER ACE_TIMING
-    INTEGER AT_SPEED_TIMER
-    INTEGER TIME_IN_SECONDS
-    INTEGER RUN_DELAY
-    INTEGER DELTA_TEMP
-    INTEGER UNDER_TEMP
-    INTEGER OVER_TEMP
-    INTEGER HIGHRES_RADIUS
-    INTEGER AUTO_ROTOR_ID
-    INTEGER SHARED_DISPLAY
-    INTEGER QC_RUN
-    INTEGER MAX_SETTINGS_STEPS
-  }
-  DEVICE_TYPES {
-    INTEGER ID PK
-    TEXT NAME
-    INTEGER INTERFACE_CONFIG
-    INTEGER WINDOW_STYLE
-    TEXT PICTURE
-  }
-  EMULATION_TYPES {
-    INTEGER ID PK
-    TEXT NAME
-  }
-  INSTRUMENTS {
-    INTEGER ID PK
-    INTEGER DEVICETYPE_ID FK
-    INTEGER EMULATIONTYPE_ID FK
-    INTEGER OPERATION_MODE
-    TEXT DESCRIPTION
-    TEXT SERIAL_NUMBER
-    INTEGER USE_FIELDBUS
-    INTEGER FIELDBUS_ADDRESS
-    TEXT IP_ADDRESS
-    INTEGER USER_UPDATE
-    INTEGER PROGRAM_UPDATE
-    INTEGER BAG_RESULT_UPDATE
-    INTEGER RUN_RESULT_UPDATE
-    INTEGER BAG_SCHEDULE_UPDATE
-    INTEGER BCR_OPTIONS_UPDATE
-    INTEGER GMP_CONFIG_UPDATE
-    INTEGER LOCK_EVENT_UPDATE
-    INTEGER PIN_SETUP_UPDATE
-    INTEGER USER_LOCKOUT_UPDATE
-    INTEGER USER_UNLOCK_UPDATE
-    INTEGER DEVICE_CLOCK_UPDATE
-    REAL TIME_CREATED
-    INTEGER CREATED_BY FK
-    REAL TIME_MODIFIED
-    INTEGER MODIFIED_BY FK
-    REAL TIME_DELETED
-    INTEGER DELETED_BY FK
-    REAL TIME_ACTIVATED
-    INTEGER ACTIVATED_BY FK
-    INTEGER DATASET_ACTIVE
-    INTEGER PARENT_DATASET
-    TEXT FINGERPRINT
-  }
-  LIMITS {
-    INTEGER ID PK
-    INTEGER P1_TIME
-    INTEGER P1_TEMP_HI
-    INTEGER P1_TEMP_LO
-    INTEGER P2_ACC_SPEED_HI_ABS
-    INTEGER P2_ACC_SPEED_HI_REL
-    INTEGER P2_ACC_SPEED_LO_ABS
-    INTEGER P2_ACC_SPEED_LO_REL
-    INTEGER P2_HLD_SPEED_HI_ABS
-    INTEGER P2_HLD_SPEED_HI_REL
-    INTEGER P2_HLD_SPEED_LO_ABS
-    INTEGER P2_HLD_SPEED_LO_REL
-    INTEGER P2_DEC_SPEED_HI_ABS
-    INTEGER P2_DEC_SPEED_HI_REL
-    INTEGER P2_DEC_SPEED_LO_ABS
-    INTEGER P2_DEC_SPEED_LO_REL
-    INTEGER P2_TIME_HI_ABS
-    INTEGER P2_TIME_LO_ABS
-    INTEGER P2_ACE_HI_ABS
-    INTEGER P2_ACE_LO_ABS
-    INTEGER P2_TEMP_HI
-    INTEGER P2_TEMP_LO
-    INTEGER P3_TIME
-    INTEGER P3_TEMP_HI
-    INTEGER P3_TEMP_LO
-    TEXT FINGERPRINT
-  }
-  PRODUCTS {
-    INTEGER ID PK
-    TEXT BARCODE
-    TEXT SCREEN_NAME
-    TEXT DESCRIPTION
-    INTEGER COLOR_CODE
-    INTEGER SETUP_ID FK
-    INTEGER SETTINGS_ID
-    INTEGER LIMITS_ID
-    REAL TIME_CREATED
-    INTEGER CREATED_BY FK
-    REAL TIME_MODIFIED
-    INTEGER MODIFIED_BY FK
-    REAL TIME_DELETED
-    INTEGER DELETED_BY FK
-    REAL TIME_ACTIVATED
-    INTEGER ACTIVATED_BY FK
-    INTEGER DATASET_ACTIVE
-    INTEGER PARENT_DATASET
-    TEXT FINGERPRINT
-  }
-  QC_RUNS {
-    INTEGER ID PK
-    INTEGER INSTRUMENT_ID FK
-    INTEGER START_USER_ID FK
-    INTEGER END_USER_ID FK
-    REAL START_TIME
-    REAL END_TIME
-    INTEGER FINAL_STATE
-    TEXT FINGERPRINT
-  }
-  ROTOR_TYPES {
-    INTEGER ID PK
-    TEXT NAME
-    TEXT ORDER_NUMBER
-    INTEGER ROTOR_CODE
-    INTEGER CONTAINER_COUNT
-    TEXT PICTURE
-  }
-  RUNS {
-    INTEGER ID PK
-    INTEGER INSTRUMENT_ID FK
-    INTEGER LOAD_USER_ID FK
-    INTEGER UNLOAD_USER_ID FK
-    INTEGER PRODUCT_ID FK
-    REAL PROCESS_START
-    REAL RUN_START
-    REAL RUN_END
-    REAL PROCESS_END
-    INTEGER FINAL_STATE
-    INTEGER RUN_RESULT_ID FK
-    TEXT LOGFILE
-    INTEGER LOGFILE_PENDING
-    INTEGER EXPORT_PENDING
-    TEXT FINGERPRINT
-  }
-  RUN_ERRORS {
-    INTEGER ID PK
-    INTEGER RUN_ID FK
-    REAL ERROR_TIME
-    INTEGER ERROR_CODE
-    INTEGER ERROR_VALUE
-    TEXT FINGERPRINT
-  }
-  RUN_FINDINGS {
-    INTEGER ID PK
-    INTEGER RUN_ID FK
-    INTEGER RUN_RESULT_ID FK
-    REAL TIME_CREATED
-    INTEGER CREATED_BY FK
-    TEXT COMMENT
-    TEXT FINGERPRINT
-  }
-  RUN_RESULTS {
-    INTEGER ID PK
-    TEXT BARCODE
-    TEXT DESCRIPTION
-    FLOAT TIME_CREATED
-    INTEGER CREATED_BY FK
-    FLOAT TIME_MODIFIED
-    INTEGER MODIFIED_BY FK
-    FLOAT TIME_DELETED
-    INTEGER DELETED_BY FK
-    REAL TIME_ACTIVATED
-    INTEGER ACTIVATED_BY FK
-    INTEGER DATASET_ACTIVE
-    INTEGER PARENT_DATASET
-    TEXT FINGERPRINT
-  }
-  RUN_REVIEWS {
-    INTEGER ID PK
-    INTEGER RUN_ID FK
-    REAL REVIEW_TIME
-    INTEGER REVIEW_CODE
-    INTEGER REVIEW_VALUE
-    TEXT FINGERPRINT
-  }
-  SETTINGS {
-    INTEGER ID PK
-    INTEGER ACCELERATION
-    INTEGER DECELERATION
-    INTEGER SPEED_RPM
-    INTEGER SPEED_RCF
-    INTEGER RUNTIME
-    INTEGER ACE_VALUE
-    INTEGER DELAY
-    INTEGER TEMPERATURE
-    INTEGER DELTA_TEMP
-    INTEGER UNDER_TEMP
-    INTEGER OVER_TEMP
-    INTEGER BRAKE_OFF
-    INTEGER SLOW_START_ACTIVE
-    INTEGER SLOW_STOP_ACTIVE
-    INTEGER RCF_VALUE_ACTIVE
-    INTEGER ACE_VALUE_ACTIVE
-    INTEGER HOLD_MODE_ACTIVE
-    INTEGER AT_SPEED_TIMER_ACTIVE
-    INTEGER DELAY_ACTIVE
-    INTEGER DELTA_TEMP_ACTIVE
-    INTEGER UNDER_TEMP_ACTIVE
-    INTEGER OVER_TEMP_ACTIVE
-    INTEGER BRAKE_OFF_ACTIVE
-    INTEGER NEXT_STEP
-    TEXT FINGERPRINT
-  }
-  SETTINGS_LIMITS {
-    INTEGER ID PK
-    INTEGER MIN_BSL
-    INTEGER MAX_BSL
-    INTEGER MIN_BRK
-    INTEGER MAX_BRK
-    INTEGER MIN_RPM
-    INTEGER MAX_RPM
-    INTEGER MIN_RCF
-    INTEGER MAX_RCF
-    INTEGER MIN_TIM
-    INTEGER MAX_TIM
-    INTEGER MIN_ACE
-    INTEGER MAX_ACE
-    INTEGER MIN_TMP
-    INTEGER MAX_TMP
-    INTEGER MIN_DEL
-    INTEGER MAX_DEL
-    INTEGER MIN_DLT
-    INTEGER MAX_DLT
-    INTEGER MIN_OTP
-    INTEGER MAX_OTP
-    INTEGER MIN_UTP
-    INTEGER MAX_UTP
-    INTEGER MIN_BOS
-    INTEGER MAX_BOS
-  }
-  SETUPS {
-    INTEGER ID PK
-    INTEGER DEVICETYPE_ID FK
-    INTEGER ROTORTYPE_ID FK
-    INTEGER BUCKETTYPE_ID FK
-    INTEGER EMULATIONTYPE_ID FK
-    TEXT FINGERPRINT
-  }
-  SETUP_TYPES {
-    INTEGER ID PK
-    INTEGER DEVICETYPE_ID FK
-    INTEGER EMULATIONTYPE_ID FK
-    INTEGER ROTORTYPE_ID FK
-    INTEGER BUCKETTYPE_ID FK
-    INTEGER CONFIGURATION_ID
-    INTEGER SETTINGS_LIMITS_ID
-    INTEGER ROTOR_IDENTIFIER
-    INTEGER ROTOR_RADIUS
-    TEXT PROFILE_DATA
-  }
-  USERS {
-    INTEGER ID PK
-    TEXT FIRST_NAME
-    TEXT LAST_NAME
-    INTEGER HAS_PC_ACCESS
-    TEXT LOG_ON_NAME
-    TEXT PASSWORD_HASH
-    INTEGER NEW_PSW_REQUESTED
-    REAL LAST_PSW_CHANGE
-    REAL NEXT_PSW_CHANGE
-    INTEGER PRIVILEGES
-    INTEGER LOGON_ATTEMPTS
-    REAL NEXT_LOGON_ATTEMPT
-    INTEGER OPERATES_CENTRIFUGE
-    TEXT USER_NAME
-    TEXT PIN_HASH
-    REAL LAST_PIN_CHANGE
-    INTEGER ACCESS_LEVEL
-    TEXT BARCODE
-    INTEGER DEVICE_ACCESS_STATE
-    REAL TIME_CREATED
-    INTEGER CREATED_BY FK
-    REAL TIME_MODIFIED
-    INTEGER MODIFIED_BY FK
-    REAL TIME_DELETED
-    INTEGER DELETED_BY FK
-    REAL TIME_ACTIVATED
-    INTEGER ACTIVATED_BY FK
-    INTEGER DATASET_ACTIVE
-    INTEGER PARENT_DATASET
-    TEXT FINGERPRINT
-  }
-  USERS ||--o{ ACCESS_HISTORY : "USER_ID"
-  BAG_RESULTS ||--o{ BAGS : "BAG_RESULT_ID"
-  RUNS ||--o{ BAGS : "RUN_ID"
-  BAGS ||--o{ BAG_FINDINGS : "BAG_ID"
-  BAG_RESULTS ||--o{ BAG_FINDINGS : "BAG_RESULT_ID"
-  USERS ||--o{ BAG_FINDINGS : "CREATED_BY"
-  USERS ||--o{ BAG_RESULTS : "ACTIVATED_BY"
-  USERS ||--o{ BAG_RESULTS : "CREATED_BY"
-  USERS ||--o{ BAG_RESULTS : "DELETED_BY"
-  USERS ||--o{ BAG_RESULTS : "MODIFIED_BY"
-  USERS ||--o{ INSTRUMENTS : "ACTIVATED_BY"
-  USERS ||--o{ INSTRUMENTS : "CREATED_BY"
-  USERS ||--o{ INSTRUMENTS : "DELETED_BY"
-  DEVICE_TYPES ||--o{ INSTRUMENTS : "DEVICETYPE_ID"
-  EMULATION_TYPES ||--o{ INSTRUMENTS : "EMULATIONTYPE_ID"
-  USERS ||--o{ INSTRUMENTS : "MODIFIED_BY"
-  USERS ||--o{ PRODUCTS : "ACTIVATED_BY"
-  USERS ||--o{ PRODUCTS : "CREATED_BY"
-  USERS ||--o{ PRODUCTS : "DELETED_BY"
-  USERS ||--o{ PRODUCTS : "MODIFIED_BY"
-  SETUPS ||--o{ PRODUCTS : "SETUP_ID"
-  USERS ||--o{ QC_RUNS : "END_USER_ID"
-  INSTRUMENTS ||--o{ QC_RUNS : "INSTRUMENT_ID"
-  USERS ||--o{ QC_RUNS : "START_USER_ID"
-  INSTRUMENTS ||--o{ RUNS : "INSTRUMENT_ID"
-  USERS ||--o{ RUNS : "LOAD_USER_ID"
-  PRODUCTS ||--o{ RUNS : "PRODUCT_ID"
-  RUN_RESULTS ||--o{ RUNS : "RUN_RESULT_ID"
-  USERS ||--o{ RUNS : "UNLOAD_USER_ID"
-  RUNS ||--o{ RUN_ERRORS : "RUN_ID"
-  USERS ||--o{ RUN_FINDINGS : "CREATED_BY"
-  RUNS ||--o{ RUN_FINDINGS : "RUN_ID"
-  RUN_RESULTS ||--o{ RUN_FINDINGS : "RUN_RESULT_ID"
-  USERS ||--o{ RUN_RESULTS : "ACTIVATED_BY"
-  USERS ||--o{ RUN_RESULTS : "CREATED_BY"
-  USERS ||--o{ RUN_RESULTS : "DELETED_BY"
-  USERS ||--o{ RUN_RESULTS : "MODIFIED_BY"
-  RUNS ||--o{ RUN_REVIEWS : "RUN_ID"
-  BUCKET_TYPES ||--o{ SETUPS : "BUCKETTYPE_ID"
-  DEVICE_TYPES ||--o{ SETUPS : "DEVICETYPE_ID"
-  EMULATION_TYPES ||--o{ SETUPS : "EMULATIONTYPE_ID"
-  ROTOR_TYPES ||--o{ SETUPS : "ROTORTYPE_ID"
-  BUCKET_TYPES ||--o{ SETUP_TYPES : "BUCKETTYPE_ID"
-  DEVICE_TYPES ||--o{ SETUP_TYPES : "DEVICETYPE_ID"
-  EMULATION_TYPES ||--o{ SETUP_TYPES : "EMULATIONTYPE_ID"
-  ROTOR_TYPES ||--o{ SETUP_TYPES : "ROTORTYPE_ID"
-  USERS ||--o{ USERS : "ACTIVATED_BY"
-  USERS ||--o{ USERS : "CREATED_BY"
-  USERS ||--o{ USERS : "DELETED_BY"
-  USERS ||--o{ USERS : "MODIFIED_BY"
-    </div>
-  </div>
-
-  <h2 style="margin:18px 0 8px 0;">Tables</h2>
-  
-    <section class="card" data-table="ACCESS_HISTORY">
-      <div class="cardhead">
-        <h2>ACCESS_HISTORY</h2>
-        <div class="small">Columns: 7 · Outgoing links: 1 · Incoming links: 0</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>LOG_ON_NAME</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>USER_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>TIME_STAMP</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>LOGGED_EVENT</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>ERROR_CODE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>FINGERPRINT</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><ul><li><code>USER_ID</code> → <strong>USERS</strong></li></ul></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><em>None</em></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="BAGS">
-      <div class="cardhead">
-        <h2>BAGS</h2>
-        <div class="small">Columns: 5 · Outgoing links: 2 · Incoming links: 1</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>RUN_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ RUNS</span></td></tr><tr><td class='colname'>BARCODE</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>BAG_RESULT_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ BAG_RESULTS</span></td></tr><tr><td class='colname'>FINGERPRINT</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><ul><li><code>BAG_RESULT_ID</code> → <strong>BAG_RESULTS</strong></li><li><code>RUN_ID</code> → <strong>RUNS</strong></li></ul></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><ul><li><strong>BAG_FINDINGS</strong>.<code>BAG_ID</code></li></ul></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="BAG_FINDINGS">
-      <div class="cardhead">
-        <h2>BAG_FINDINGS</h2>
-        <div class="small">Columns: 7 · Outgoing links: 3 · Incoming links: 0</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>BAG_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ BAGS</span></td></tr><tr><td class='colname'>BAG_RESULT_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ BAG_RESULTS</span></td></tr><tr><td class='colname'>TIME_CREATED</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>CREATED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>COMMENT</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>FINGERPRINT</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><ul><li><code>BAG_ID</code> → <strong>BAGS</strong></li><li><code>BAG_RESULT_ID</code> → <strong>BAG_RESULTS</strong></li><li><code>CREATED_BY</code> → <strong>USERS</strong></li></ul></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><em>None</em></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="BAG_RESULTS">
-      <div class="cardhead">
-        <h2>BAG_RESULTS</h2>
-        <div class="small">Columns: 14 · Outgoing links: 4 · Incoming links: 2</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>BARCODE</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>DESCRIPTION</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>TIME_CREATED</td><td class='coltype'>FLOAT</td><td class='colflags'></td></tr><tr><td class='colname'>CREATED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>TIME_MODIFIED</td><td class='coltype'>FLOAT</td><td class='colflags'></td></tr><tr><td class='colname'>MODIFIED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>TIME_DELETED</td><td class='coltype'>FLOAT</td><td class='colflags'></td></tr><tr><td class='colname'>DELETED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>TIME_ACTIVATED</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>ACTIVATED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>DATASET_ACTIVE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>PARENT_DATASET</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>FINGERPRINT</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><ul><li><code>ACTIVATED_BY</code> → <strong>USERS</strong></li><li><code>CREATED_BY</code> → <strong>USERS</strong></li><li><code>DELETED_BY</code> → <strong>USERS</strong></li><li><code>MODIFIED_BY</code> → <strong>USERS</strong></li></ul></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><ul><li><strong>BAGS</strong>.<code>BAG_RESULT_ID</code></li><li><strong>BAG_FINDINGS</strong>.<code>BAG_RESULT_ID</code></li></ul></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="BAG_SCHEDULES">
-      <div class="cardhead">
-        <h2>BAG_SCHEDULES</h2>
-        <div class="small">Columns: 5 · Outgoing links: 0 · Incoming links: 0</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>BAG_BARCODE</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>PRODUCT_BARCODE</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>TIME_INVALIDATED</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>FINGERPRINT</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><em>None</em></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><em>None</em></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="BUCKET_TYPES">
-      <div class="cardhead">
-        <h2>BUCKET_TYPES</h2>
-        <div class="small">Columns: 5 · Outgoing links: 0 · Incoming links: 2</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>NAME</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>ORDER_NUMBER</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>SAMPLE_COUNT</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>PICTURE</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><em>None</em></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><ul><li><strong>SETUPS</strong>.<code>BUCKETTYPE_ID</code></li><li><strong>SETUP_TYPES</strong>.<code>BUCKETTYPE_ID</code></li></ul></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="DEVICE_CONFIGURATIONS">
-      <div class="cardhead">
-        <h2>DEVICE_CONFIGURATIONS</h2>
-        <div class="small">Columns: 17 · Outgoing links: 0 · Incoming links: 0</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>NAME</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>SLOW_START</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>SLOW_STOP</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>BRAKE_OFF</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>ACE_TIMING</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>AT_SPEED_TIMER</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>TIME_IN_SECONDS</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>RUN_DELAY</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>DELTA_TEMP</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>UNDER_TEMP</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>OVER_TEMP</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>HIGHRES_RADIUS</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>AUTO_ROTOR_ID</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>SHARED_DISPLAY</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>QC_RUN</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MAX_SETTINGS_STEPS</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><em>None</em></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><em>None</em></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="DEVICE_TYPES">
-      <div class="cardhead">
-        <h2>DEVICE_TYPES</h2>
-        <div class="small">Columns: 5 · Outgoing links: 0 · Incoming links: 3</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>NAME</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>INTERFACE_CONFIG</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>WINDOW_STYLE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>PICTURE</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><em>None</em></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><ul><li><strong>INSTRUMENTS</strong>.<code>DEVICETYPE_ID</code></li><li><strong>SETUPS</strong>.<code>DEVICETYPE_ID</code></li><li><strong>SETUP_TYPES</strong>.<code>DEVICETYPE_ID</code></li></ul></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="EMULATION_TYPES">
-      <div class="cardhead">
-        <h2>EMULATION_TYPES</h2>
-        <div class="small">Columns: 2 · Outgoing links: 0 · Incoming links: 3</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>NAME</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><em>None</em></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><ul><li><strong>INSTRUMENTS</strong>.<code>EMULATIONTYPE_ID</code></li><li><strong>SETUPS</strong>.<code>EMULATIONTYPE_ID</code></li><li><strong>SETUP_TYPES</strong>.<code>EMULATIONTYPE_ID</code></li></ul></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="INSTRUMENTS">
-      <div class="cardhead">
-        <h2>INSTRUMENTS</h2>
-        <div class="small">Columns: 32 · Outgoing links: 6 · Incoming links: 2</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>DEVICETYPE_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ DEVICE_TYPES</span></td></tr><tr><td class='colname'>EMULATIONTYPE_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ EMULATION_TYPES</span></td></tr><tr><td class='colname'>OPERATION_MODE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>DESCRIPTION</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>SERIAL_NUMBER</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>USE_FIELDBUS</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>FIELDBUS_ADDRESS</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>IP_ADDRESS</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>USER_UPDATE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>PROGRAM_UPDATE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>BAG_RESULT_UPDATE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>RUN_RESULT_UPDATE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>BAG_SCHEDULE_UPDATE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>BCR_OPTIONS_UPDATE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>GMP_CONFIG_UPDATE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>LOCK_EVENT_UPDATE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>PIN_SETUP_UPDATE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>USER_LOCKOUT_UPDATE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>USER_UNLOCK_UPDATE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>DEVICE_CLOCK_UPDATE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>TIME_CREATED</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>CREATED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>TIME_MODIFIED</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>MODIFIED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>TIME_DELETED</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>DELETED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>TIME_ACTIVATED</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>ACTIVATED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>DATASET_ACTIVE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>PARENT_DATASET</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>FINGERPRINT</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><ul><li><code>ACTIVATED_BY</code> → <strong>USERS</strong></li><li><code>CREATED_BY</code> → <strong>USERS</strong></li><li><code>DELETED_BY</code> → <strong>USERS</strong></li><li><code>DEVICETYPE_ID</code> → <strong>DEVICE_TYPES</strong></li><li><code>EMULATIONTYPE_ID</code> → <strong>EMULATION_TYPES</strong></li><li><code>MODIFIED_BY</code> → <strong>USERS</strong></li></ul></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><ul><li><strong>QC_RUNS</strong>.<code>INSTRUMENT_ID</code></li><li><strong>RUNS</strong>.<code>INSTRUMENT_ID</code></li></ul></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="LIMITS">
-      <div class="cardhead">
-        <h2>LIMITS</h2>
-        <div class="small">Columns: 26 · Outgoing links: 0 · Incoming links: 0</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>P1_TIME</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P1_TEMP_HI</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P1_TEMP_LO</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P2_ACC_SPEED_HI_ABS</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P2_ACC_SPEED_HI_REL</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P2_ACC_SPEED_LO_ABS</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P2_ACC_SPEED_LO_REL</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P2_HLD_SPEED_HI_ABS</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P2_HLD_SPEED_HI_REL</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P2_HLD_SPEED_LO_ABS</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P2_HLD_SPEED_LO_REL</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P2_DEC_SPEED_HI_ABS</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P2_DEC_SPEED_HI_REL</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P2_DEC_SPEED_LO_ABS</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P2_DEC_SPEED_LO_REL</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P2_TIME_HI_ABS</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P2_TIME_LO_ABS</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P2_ACE_HI_ABS</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P2_ACE_LO_ABS</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P2_TEMP_HI</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P2_TEMP_LO</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P3_TIME</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P3_TEMP_HI</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>P3_TEMP_LO</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>FINGERPRINT</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><em>None</em></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><em>None</em></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="PRODUCTS">
-      <div class="cardhead">
-        <h2>PRODUCTS</h2>
-        <div class="small">Columns: 19 · Outgoing links: 5 · Incoming links: 1</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>BARCODE</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>SCREEN_NAME</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>DESCRIPTION</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>COLOR_CODE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>SETUP_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ SETUPS</span></td></tr><tr><td class='colname'>SETTINGS_ID</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>LIMITS_ID</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>TIME_CREATED</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>CREATED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>TIME_MODIFIED</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>MODIFIED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>TIME_DELETED</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>DELETED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>TIME_ACTIVATED</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>ACTIVATED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>DATASET_ACTIVE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>PARENT_DATASET</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>FINGERPRINT</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><ul><li><code>ACTIVATED_BY</code> → <strong>USERS</strong></li><li><code>CREATED_BY</code> → <strong>USERS</strong></li><li><code>DELETED_BY</code> → <strong>USERS</strong></li><li><code>MODIFIED_BY</code> → <strong>USERS</strong></li><li><code>SETUP_ID</code> → <strong>SETUPS</strong></li></ul></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><ul><li><strong>RUNS</strong>.<code>PRODUCT_ID</code></li></ul></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="QC_RUNS">
-      <div class="cardhead">
-        <h2>QC_RUNS</h2>
-        <div class="small">Columns: 8 · Outgoing links: 3 · Incoming links: 0</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>INSTRUMENT_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ INSTRUMENTS</span></td></tr><tr><td class='colname'>START_USER_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>END_USER_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>START_TIME</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>END_TIME</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>FINAL_STATE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>FINGERPRINT</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><ul><li><code>END_USER_ID</code> → <strong>USERS</strong></li><li><code>INSTRUMENT_ID</code> → <strong>INSTRUMENTS</strong></li><li><code>START_USER_ID</code> → <strong>USERS</strong></li></ul></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><em>None</em></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="ROTOR_TYPES">
-      <div class="cardhead">
-        <h2>ROTOR_TYPES</h2>
-        <div class="small">Columns: 6 · Outgoing links: 0 · Incoming links: 2</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>NAME</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>ORDER_NUMBER</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>ROTOR_CODE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>CONTAINER_COUNT</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>PICTURE</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><em>None</em></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><ul><li><strong>SETUPS</strong>.<code>ROTORTYPE_ID</code></li><li><strong>SETUP_TYPES</strong>.<code>ROTORTYPE_ID</code></li></ul></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="RUNS">
-      <div class="cardhead">
-        <h2>RUNS</h2>
-        <div class="small">Columns: 15 · Outgoing links: 5 · Incoming links: 4</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>INSTRUMENT_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ INSTRUMENTS</span></td></tr><tr><td class='colname'>LOAD_USER_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>UNLOAD_USER_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>PRODUCT_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ PRODUCTS</span></td></tr><tr><td class='colname'>PROCESS_START</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>RUN_START</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>RUN_END</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>PROCESS_END</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>FINAL_STATE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>RUN_RESULT_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ RUN_RESULTS</span></td></tr><tr><td class='colname'>LOGFILE</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>LOGFILE_PENDING</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>EXPORT_PENDING</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>FINGERPRINT</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><ul><li><code>INSTRUMENT_ID</code> → <strong>INSTRUMENTS</strong></li><li><code>LOAD_USER_ID</code> → <strong>USERS</strong></li><li><code>PRODUCT_ID</code> → <strong>PRODUCTS</strong></li><li><code>RUN_RESULT_ID</code> → <strong>RUN_RESULTS</strong></li><li><code>UNLOAD_USER_ID</code> → <strong>USERS</strong></li></ul></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><ul><li><strong>BAGS</strong>.<code>RUN_ID</code></li><li><strong>RUN_ERRORS</strong>.<code>RUN_ID</code></li><li><strong>RUN_FINDINGS</strong>.<code>RUN_ID</code></li><li><strong>RUN_REVIEWS</strong>.<code>RUN_ID</code></li></ul></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="RUN_ERRORS">
-      <div class="cardhead">
-        <h2>RUN_ERRORS</h2>
-        <div class="small">Columns: 6 · Outgoing links: 1 · Incoming links: 0</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>RUN_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ RUNS</span></td></tr><tr><td class='colname'>ERROR_TIME</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>ERROR_CODE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>ERROR_VALUE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>FINGERPRINT</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><ul><li><code>RUN_ID</code> → <strong>RUNS</strong></li></ul></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><em>None</em></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="RUN_FINDINGS">
-      <div class="cardhead">
-        <h2>RUN_FINDINGS</h2>
-        <div class="small">Columns: 7 · Outgoing links: 3 · Incoming links: 0</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>RUN_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ RUNS</span></td></tr><tr><td class='colname'>RUN_RESULT_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ RUN_RESULTS</span></td></tr><tr><td class='colname'>TIME_CREATED</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>CREATED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>COMMENT</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>FINGERPRINT</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><ul><li><code>CREATED_BY</code> → <strong>USERS</strong></li><li><code>RUN_ID</code> → <strong>RUNS</strong></li><li><code>RUN_RESULT_ID</code> → <strong>RUN_RESULTS</strong></li></ul></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><em>None</em></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="RUN_RESULTS">
-      <div class="cardhead">
-        <h2>RUN_RESULTS</h2>
-        <div class="small">Columns: 14 · Outgoing links: 4 · Incoming links: 2</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>BARCODE</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>DESCRIPTION</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>TIME_CREATED</td><td class='coltype'>FLOAT</td><td class='colflags'></td></tr><tr><td class='colname'>CREATED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>TIME_MODIFIED</td><td class='coltype'>FLOAT</td><td class='colflags'></td></tr><tr><td class='colname'>MODIFIED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>TIME_DELETED</td><td class='coltype'>FLOAT</td><td class='colflags'></td></tr><tr><td class='colname'>DELETED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>TIME_ACTIVATED</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>ACTIVATED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>DATASET_ACTIVE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>PARENT_DATASET</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>FINGERPRINT</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><ul><li><code>ACTIVATED_BY</code> → <strong>USERS</strong></li><li><code>CREATED_BY</code> → <strong>USERS</strong></li><li><code>DELETED_BY</code> → <strong>USERS</strong></li><li><code>MODIFIED_BY</code> → <strong>USERS</strong></li></ul></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><ul><li><strong>RUNS</strong>.<code>RUN_RESULT_ID</code></li><li><strong>RUN_FINDINGS</strong>.<code>RUN_RESULT_ID</code></li></ul></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="RUN_REVIEWS">
-      <div class="cardhead">
-        <h2>RUN_REVIEWS</h2>
-        <div class="small">Columns: 6 · Outgoing links: 1 · Incoming links: 0</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>RUN_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ RUNS</span></td></tr><tr><td class='colname'>REVIEW_TIME</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>REVIEW_CODE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>REVIEW_VALUE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>FINGERPRINT</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><ul><li><code>RUN_ID</code> → <strong>RUNS</strong></li></ul></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><em>None</em></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="SETTINGS">
-      <div class="cardhead">
-        <h2>SETTINGS</h2>
-        <div class="small">Columns: 26 · Outgoing links: 0 · Incoming links: 0</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>ACCELERATION</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>DECELERATION</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>SPEED_RPM</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>SPEED_RCF</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>RUNTIME</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>ACE_VALUE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>DELAY</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>TEMPERATURE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>DELTA_TEMP</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>UNDER_TEMP</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>OVER_TEMP</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>BRAKE_OFF</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>SLOW_START_ACTIVE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>SLOW_STOP_ACTIVE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>RCF_VALUE_ACTIVE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>ACE_VALUE_ACTIVE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>HOLD_MODE_ACTIVE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>AT_SPEED_TIMER_ACTIVE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>DELAY_ACTIVE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>DELTA_TEMP_ACTIVE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>UNDER_TEMP_ACTIVE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>OVER_TEMP_ACTIVE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>BRAKE_OFF_ACTIVE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>NEXT_STEP</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>FINGERPRINT</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><em>None</em></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><em>None</em></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="SETTINGS_LIMITS">
-      <div class="cardhead">
-        <h2>SETTINGS_LIMITS</h2>
-        <div class="small">Columns: 25 · Outgoing links: 0 · Incoming links: 0</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>MIN_BSL</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MAX_BSL</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MIN_BRK</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MAX_BRK</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MIN_RPM</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MAX_RPM</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MIN_RCF</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MAX_RCF</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MIN_TIM</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MAX_TIM</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MIN_ACE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MAX_ACE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MIN_TMP</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MAX_TMP</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MIN_DEL</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MAX_DEL</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MIN_DLT</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MAX_DLT</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MIN_OTP</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MAX_OTP</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MIN_UTP</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MAX_UTP</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MIN_BOS</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>MAX_BOS</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><em>None</em></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><em>None</em></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="SETUPS">
-      <div class="cardhead">
-        <h2>SETUPS</h2>
-        <div class="small">Columns: 6 · Outgoing links: 4 · Incoming links: 1</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>DEVICETYPE_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ DEVICE_TYPES</span></td></tr><tr><td class='colname'>ROTORTYPE_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ ROTOR_TYPES</span></td></tr><tr><td class='colname'>BUCKETTYPE_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ BUCKET_TYPES</span></td></tr><tr><td class='colname'>EMULATIONTYPE_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ EMULATION_TYPES</span></td></tr><tr><td class='colname'>FINGERPRINT</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><ul><li><code>BUCKETTYPE_ID</code> → <strong>BUCKET_TYPES</strong></li><li><code>DEVICETYPE_ID</code> → <strong>DEVICE_TYPES</strong></li><li><code>EMULATIONTYPE_ID</code> → <strong>EMULATION_TYPES</strong></li><li><code>ROTORTYPE_ID</code> → <strong>ROTOR_TYPES</strong></li></ul></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><ul><li><strong>PRODUCTS</strong>.<code>SETUP_ID</code></li></ul></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="SETUP_TYPES">
-      <div class="cardhead">
-        <h2>SETUP_TYPES</h2>
-        <div class="small">Columns: 10 · Outgoing links: 4 · Incoming links: 0</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>DEVICETYPE_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ DEVICE_TYPES</span></td></tr><tr><td class='colname'>EMULATIONTYPE_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ EMULATION_TYPES</span></td></tr><tr><td class='colname'>ROTORTYPE_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ ROTOR_TYPES</span></td></tr><tr><td class='colname'>BUCKETTYPE_ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ BUCKET_TYPES</span></td></tr><tr><td class='colname'>CONFIGURATION_ID</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>SETTINGS_LIMITS_ID</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>ROTOR_IDENTIFIER</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>ROTOR_RADIUS</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>PROFILE_DATA</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><ul><li><code>BUCKETTYPE_ID</code> → <strong>BUCKET_TYPES</strong></li><li><code>DEVICETYPE_ID</code> → <strong>DEVICE_TYPES</strong></li><li><code>EMULATIONTYPE_ID</code> → <strong>EMULATION_TYPES</strong></li><li><code>ROTORTYPE_ID</code> → <strong>ROTOR_TYPES</strong></li></ul></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><em>None</em></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="card" data-table="USERS">
-      <div class="cardhead">
-        <h2>USERS</h2>
-        <div class="small">Columns: 30 · Outgoing links: 4 · Incoming links: 27</div>
-      </div>
-      <div class="grid">
-        <div>
-          <h3>Columns</h3>
-          <table class="cols">
-            <thead><tr><th>Name</th><th>Type</th><th>Keys</th></tr></thead>
-            <tbody>
-              <tr><td class='colname'>ID</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge pk">PK</span></td></tr><tr><td class='colname'>FIRST_NAME</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>LAST_NAME</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>HAS_PC_ACCESS</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>LOG_ON_NAME</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>PASSWORD_HASH</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>NEW_PSW_REQUESTED</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>LAST_PSW_CHANGE</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>NEXT_PSW_CHANGE</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>PRIVILEGES</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>LOGON_ATTEMPTS</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>NEXT_LOGON_ATTEMPT</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>OPERATES_CENTRIFUGE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>USER_NAME</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>PIN_HASH</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>LAST_PIN_CHANGE</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>ACCESS_LEVEL</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>BARCODE</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr><tr><td class='colname'>DEVICE_ACCESS_STATE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>TIME_CREATED</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>CREATED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>TIME_MODIFIED</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>MODIFIED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>TIME_DELETED</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>DELETED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>TIME_ACTIVATED</td><td class='coltype'>REAL</td><td class='colflags'></td></tr><tr><td class='colname'>ACTIVATED_BY</td><td class='coltype'>INTEGER</td><td class='colflags'><span class="badge fk">FK</span> <span class="fkto">→ USERS</span></td></tr><tr><td class='colname'>DATASET_ACTIVE</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>PARENT_DATASET</td><td class='coltype'>INTEGER</td><td class='colflags'></td></tr><tr><td class='colname'>FINGERPRINT</td><td class='coltype'>TEXT</td><td class='colflags'></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3>Relationships</h3>
-          <div class="rels">
-            <div class="relblock"><div class="reltitle">References</div><ul><li><code>ACTIVATED_BY</code> → <strong>USERS</strong></li><li><code>CREATED_BY</code> → <strong>USERS</strong></li><li><code>DELETED_BY</code> → <strong>USERS</strong></li><li><code>MODIFIED_BY</code> → <strong>USERS</strong></li></ul></div>
-            <div class="relblock"><div class="reltitle">Referenced by</div><ul><li><strong>ACCESS_HISTORY</strong>.<code>USER_ID</code></li><li><strong>BAG_FINDINGS</strong>.<code>CREATED_BY</code></li><li><strong>BAG_RESULTS</strong>.<code>ACTIVATED_BY</code></li><li><strong>BAG_RESULTS</strong>.<code>CREATED_BY</code></li><li><strong>BAG_RESULTS</strong>.<code>DELETED_BY</code></li><li><strong>BAG_RESULTS</strong>.<code>MODIFIED_BY</code></li><li><strong>INSTRUMENTS</strong>.<code>ACTIVATED_BY</code></li><li><strong>INSTRUMENTS</strong>.<code>CREATED_BY</code></li><li><strong>INSTRUMENTS</strong>.<code>DELETED_BY</code></li><li><strong>INSTRUMENTS</strong>.<code>MODIFIED_BY</code></li><li><strong>PRODUCTS</strong>.<code>ACTIVATED_BY</code></li><li><strong>PRODUCTS</strong>.<code>CREATED_BY</code></li><li><strong>PRODUCTS</strong>.<code>DELETED_BY</code></li><li><strong>PRODUCTS</strong>.<code>MODIFIED_BY</code></li><li><strong>QC_RUNS</strong>.<code>END_USER_ID</code></li><li><strong>QC_RUNS</strong>.<code>START_USER_ID</code></li><li><strong>RUNS</strong>.<code>LOAD_USER_ID</code></li><li><strong>RUNS</strong>.<code>UNLOAD_USER_ID</code></li><li><strong>RUN_FINDINGS</strong>.<code>CREATED_BY</code></li><li><strong>RUN_RESULTS</strong>.<code>ACTIVATED_BY</code></li><li><strong>RUN_RESULTS</strong>.<code>CREATED_BY</code></li><li><strong>RUN_RESULTS</strong>.<code>DELETED_BY</code></li><li><strong>RUN_RESULTS</strong>.<code>MODIFIED_BY</code></li><li><strong>USERS</strong>.<code>ACTIVATED_BY</code></li><li><strong>USERS</strong>.<code>CREATED_BY</code></li><li><strong>USERS</strong>.<code>DELETED_BY</code></li><li><strong>USERS</strong>.<code>MODIFIED_BY</code></li></ul></div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-
-  <footer>
-    Generated from: <code>CentriLog.data</code>
-  </footer>
-  </div>
-
-  <div id="dataPage" class="purple-container">
-    <div class="purple-card">
-      <h2 class="purple-title">🗄️ App.db Data Browser</h2>
-      <p class="purple-subtitle">Select a table to view its data from app.db database</p>
-      
-      <div class="purple-stats" id="dbStats">
-        <div class="purple-stat">
-          <div class="purple-stat-value" id="tableCount">-</div>
-          <div class="purple-stat-label">Tables</div>
-        </div>
-        <div class="purple-stat">
-          <div class="purple-stat-value" id="currentRows">-</div>
-          <div class="purple-stat-label">Rows</div>
-        </div>
-      </div>
-
-      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">
-        <label style="color:var(--muted);font-size:14px;">Select Table:</label>
-        <select id="tableSelect" class="purple-select">
-          <option value="">-- Choose a table --</option>
-        </select>
-      </div>
-
-      <div id="dataTableContainer">
-        <div class="purple-loading" id="loadingIndicator" style="display:none;"></div>
-        <div id="tableContent"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-mermaid.initialize({ startOnLoad: true, theme: "dark" });
-
-const search = document.getElementById('search');
-const cards = Array.from(document.querySelectorAll('section.card'));
-search.addEventListener('input', () => {
-  const q = (search.value || '').toLowerCase().trim();
-  for (const c of cards) {
-    const name = (c.dataset.table || '').toLowerCase();
-    c.style.display = (!q || name.includes(q)) ? '' : 'none';
-  }
-});
-
-const tabs = Array.from(document.querySelectorAll('button.tab'));
-function setTab(target) {
-  for (const t of tabs) t.classList.toggle('active', t.dataset.target === target);
-  document.getElementById('diagram-core').style.display = (target === 'core') ? '' : 'none';
-  document.getElementById('diagram-all').style.display = (target === 'all') ? '' : 'none';
-}
-tabs.forEach(t => t.addEventListener('click', () => setTab(t.dataset.target)));
-
-const mainTabs = Array.from(document.querySelectorAll('button.main-tab'));
-const schemaPage = document.getElementById('schemaPage');
-const dataPage = document.getElementById('dataPage');
-const mainHeader = document.getElementById('mainHeader');
-const mainTitle = document.getElementById('mainTitle');
-const mainDesc = document.getElementById('mainDesc');
-
-let tablesLoaded = false;
-let currentPage = 1;
-let currentTable = '';
-const limit = 50;
-
-function setPage(page) {
-  mainTabs.forEach(t => {
-    const isActive = t.dataset.page === page;
-    t.classList.toggle('active', isActive);
-  });
-  
-  if (page === 'schema') {
-    schemaPage.classList.remove('hidden');
-    dataPage.classList.remove('active');
-    mainHeader.classList.remove('purple-header');
-    document.body.classList.remove('purple-mode');
-    mainTitle.textContent = 'CentriLog DB Schema (from CentriLog.data)';
-    mainDesc.innerHTML = 'This page was generated by inspecting the SQLite schema and <strong>inferring</strong> table relationships mainly from column names like <code>*_ID</code>, plus common audit fields such as <code>*_BY</code> (mapped to <code>USERS</code>). Because there are no declared foreign keys in the database DDL, treat relationships as best-effort.';
-  } else {
-    schemaPage.classList.add('hidden');
-    dataPage.classList.add('active');
-    mainHeader.classList.add('purple-header');
-    document.body.classList.add('purple-mode');
-    mainTitle.textContent = '🗄️ App.db Data Browser';
-    mainDesc.innerHTML = 'Browse and explore data from the <code>app.db</code> SQLite database. Select a table from the dropdown to view its contents.';
-    
-    if (!tablesLoaded) {
-      loadTables();
-    }
-  }
-}
-
-mainTabs.forEach(t => t.addEventListener('click', () => setPage(t.dataset.page)));
-
-async function loadTables() {
-  try {
-    const res = await fetch('/api/db/tables');
-    const data = await res.json();
-    if (data.success) {
-      const select = document.getElementById('tableSelect');
-      data.data.forEach(table => {
-        const opt = document.createElement('option');
-        opt.value = table;
-        opt.textContent = table;
-        select.appendChild(opt);
-      });
-      document.getElementById('tableCount').textContent = data.data.length;
-      tablesLoaded = true;
-    }
-  } catch (e) {
-    console.error('Failed to load tables:', e);
-  }
-}
-
-document.getElementById('tableSelect').addEventListener('change', async (e) => {
-  currentTable = e.target.value;
-  currentPage = 1;
-  if (currentTable) {
-    await loadTableData(currentTable, currentPage);
-  } else {
-    document.getElementById('tableContent').innerHTML = '';
-    document.getElementById('currentRows').textContent = '-';
-  }
-});
-
-async function loadTableData(table, page) {
-  const loading = document.getElementById('loadingIndicator');
-  const content = document.getElementById('tableContent');
-  
-  loading.style.display = 'flex';
-  content.innerHTML = '';
-  
-  try {
-    const res = await fetch(`/api/db/table/${encodeURIComponent(table)}?page=${page}&limit=${limit}`);
-    const data = await res.json();
-    
-    if (data.success) {
-      const { columns, rows, total, totalPages } = data.data;
-      document.getElementById('currentRows').textContent = total;
-      
-      let html = `<div class="purple-info" style="margin-bottom:12px;">Showing ${rows.length} of ${total} rows (Page ${page}/${totalPages})</div>`;
-      html += '<div style="overflow-x:auto;"><table class="purple-table"><thead><tr>';
-      columns.forEach(col => {
-        html += `<th>${col}</th>`;
-      });
-      html += '</tr></thead><tbody>';
-      
-      rows.forEach(row => {
-        html += '<tr>';
-        columns.forEach(col => {
-          let val = row[col];
-          if (val === null) val = '<span style="color:var(--muted);font-style:italic;">NULL</span>';
-          else if (typeof val === 'object') val = JSON.stringify(val);
-          else if (String(val).length > 100) val = String(val).substring(0, 100) + '...';
-          html += `<td>${val}</td>`;
-        });
-        html += '</tr>';
-      });
-      
-      html += '</tbody></table></div>';
-      
-      if (totalPages > 1) {
-        html += '<div class="purple-pagination">';
-        html += `<button class="purple-page-btn" ${page === 1 ? 'disabled' : ''} onclick="goToPage(${page - 1})">← Prev</button>`;
-        
-        const startPage = Math.max(1, page - 2);
-        const endPage = Math.min(totalPages, page + 2);
-        
-        if (startPage > 1) {
-          html += `<button class="purple-page-btn" onclick="goToPage(1)">1</button>`;
-          if (startPage > 2) html += '<span class="purple-info">...</span>';
-        }
-        
-        for (let i = startPage; i <= endPage; i++) {
-          html += `<button class="purple-page-btn ${i === page ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
-        }
-        
-        if (endPage < totalPages) {
-          if (endPage < totalPages - 1) html += '<span class="purple-info">...</span>';
-          html += `<button class="purple-page-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
-        }
-        
-        html += `<button class="purple-page-btn" ${page === totalPages ? 'disabled' : ''} onclick="goToPage(${page + 1})">Next →</button>`;
-        html += '</div>';
-      }
-      
-      content.innerHTML = html;
-    }
-  } catch (e) {
-    content.innerHTML = `<div style="color:#ef4444;padding:20px;">Error loading data: ${e.message}</div>`;
-  } finally {
-    loading.style.display = 'none';
-  }
-}
-
-window.goToPage = function(page) {
-  if (page < 1 || !currentTable) return;
-  currentPage = page;
-  loadTableData(currentTable, page);
-};
-</script>
-
+    <script src="app.js"></script>
 </body>
 </html>

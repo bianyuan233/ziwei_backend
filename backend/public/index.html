@@ -3,135 +3,256 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>服务器健康检查</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-        }
-        .status {
-            text-align: center;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 5px;
-        }
-        .status-ok {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .info-box {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 10px 0;
-            border-left: 4px solid #007bff;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            display: block;
-            margin: 20px auto;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        .loading {
-            text-align: center;
-            color: #666;
-        }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 10px 0;
-        }
-    </style>
+    <title>离心机数字化监控系统V1.0.0</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="container">
-        <h1>服务器健康检查</h1>
-        
-        <div id="status" class="status">
-            <p>点击下方按钮检查服务器状态</p>
+    <div class="app-container">
+        <!-- 顶部导航栏 -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="menu-toggle" id="menuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="system-title">离心机数字化监控系统V1.0.0</h1>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span class="username">这是一个用户名</span>
+                    <i class="fas fa-caret-down"></i>
+                </div>
+                <div class="window-controls">
+                    <button class="win-btn minimize"><i class="fas fa-minus"></i></button>
+                    <button class="win-btn maximize"><i class="far fa-square"></i></button>
+                    <button class="win-btn close"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主体内容区 -->
+        <div class="main-content">
+            <!-- 左侧导航菜单 -->
+            <aside class="sidebar" id="sidebar">
+                <nav class="nav-menu">
+                    <ul>
+                        <li class="nav-item active" data-page="dashboard">
+                            <a href="#">
+                                <i class="fas fa-chart-bar"></i>
+                                <span class="nav-text">数据评估</span>
+                                <i class="fas fa-chevron-down submenu-arrow"></i>
+                            </a>
+                            <ul class="submenu">
+                                <li class="submenu-item active" data-view="operation-eval">
+                                    <a href="#">运行数据评估</a>
+                                </li>
+                                <li class="submenu-item" data-view="sample-eval">
+                                    <a href="#">样本数据评估</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item" data-page="records">
+                            <a href="#">
+                                <i class="fas fa-file-alt"></i>
+                                <span class="nav-text">电子记录</span>
+                            </a>
+                        </li>
+                        <li class="nav-item" data-page="management">
+                            <a href="#">
+                                <i class="fas fa-cog"></i>
+                                <span class="nav-text">管理</span>
+                            </a>
+                        </li>
+                        <li class="nav-item" data-page="settings">
+                            <a href="#">
+                                <i class="fas fa-sliders-h"></i>
+                                <span class="nav-text">设置</span>
+                            </a>
+                        </li>
+                        <li class="nav-item" data-page="help">
+                            <a href="#">
+                                <i class="fas fa-info-circle"></i>
+                                <span class="nav-text">帮助</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </aside>
+
+            <!-- 右侧内容区 -->
+            <main class="content-area">
+                <!-- 工具栏 -->
+                <div class="toolbar">
+                    <div class="toolbar-left">
+                        <button class="btn btn-primary" id="startCommBtn">
+                            <i class="fas fa-play"></i> 开始通信
+                        </button>
+                        <button class="btn btn-danger" id="stopCommBtn">
+                            <i class="fas fa-stop"></i> 结束通信
+                        </button>
+                    </div>
+                    <div class="toolbar-center">
+                        <div class="search-box">
+                            <input type="text" id="searchInput" placeholder="请输入序列号/ip地址/离心机名称查找设备...">
+                            <button class="search-btn" id="searchBtn">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            <div class="search-dropdown" id="searchDropdown">
+                                <div class="search-item">
+                                    <span class="search-label">名称:</span>
+                                    <span class="search-value">12345678910111213141</span>
+                                </div>
+                                <div class="search-item">
+                                    <span class="search-label">名称:</span>
+                                    <span class="search-value">二号厂房12345</span>
+                                </div>
+                                <div class="search-item">
+                                    <span class="search-label">序列号:</span>
+                                    <span class="search-value">12345678</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 设备筛选标签 -->
+                <div class="filter-tabs">
+                    <button class="filter-tab active" data-filter="all">全部设备</button>
+                    <button class="filter-tab" data-filter="MX30R">MX30R</button>
+                    <button class="filter-tab" data-filter="other">另一个离心机类型</button>
+                </div>
+
+                <!-- 页面内容容器 -->
+                <div class="page-container">
+                    <!-- 仪表盘视图 - 设备卡片网格 -->
+                    <div class="view-section active" id="dashboardView">
+                        <div class="device-grid" id="deviceGrid">
+                            <!-- 设备卡片将通过JS动态生成 -->
+                        </div>
+                    </div>
+
+                    <!-- 设备详情视图 -->
+                    <div class="view-section" id="deviceDetailView">
+                        <div class="detail-container">
+                            <h2 class="detail-title">离心机名称: <span id="detailDeviceName">12345678901234567890</span></h2>
+                            <div class="detail-grid">
+                                <div class="detail-card">
+                                    <h3>基本信息:</h3>
+                                    <div class="info-row">
+                                        <span class="label">类 型:</span>
+                                        <span class="value" id="detailType">MX30R</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">名 称:</span>
+                                        <span class="value" id="detailName">这里最多可以放20个字符,希望长的话可以做到自适应换行</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">序列号:</span>
+                                        <span class="value" id="detailSerial">123456789</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">ip地址:</span>
+                                        <span class="value" id="detailIp">162.166.166.166</span>
+                                    </div>
+                                </div>
+                                <div class="detail-card">
+                                    <h3>实时参数:</h3>
+                                    <div class="info-row">
+                                        <span class="label">转速:</span>
+                                        <span class="value" id="realtimeSpeed">9370 rpm</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">时间:</span>
+                                        <span class="value" id="realtimeTime">0 min</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">温度:</span>
+                                        <span class="value" id="realtimeTemp">20 ℃</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">程序名:</span>
+                                        <span class="value" id="realtimeProgram">这是程序条码名,限定16位字符.</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">状 态:</span>
+                                        <span class="value status-running" id="realtimeStatus">正在运行</span>
+                                    </div>
+                                </div>
+                                <div class="detail-card">
+                                    <h3>设置参数:</h3>
+                                    <div class="info-row">
+                                        <span class="label">转速:</span>
+                                        <span class="value" id="settingSpeed">10000 rpm</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">时间:</span>
+                                        <span class="value" id="settingTime">30 min</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">温度:</span>
+                                        <span class="value" id="settingTemp">20 ℃</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">加速挡位:</span>
+                                        <span class="value" id="settingAccel">9</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">减速挡位:</span>
+                                        <span class="value" id="settingDecel">10</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">无刹车转速:</span>
+                                        <span class="value" id="settingNoBrake">500 rpm</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="detail-actions">
+                                <button class="btn btn-primary" id="backToDashboard">返回概览页面</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 设备列表视图 -->
+                    <div class="view-section" id="deviceListView">
+                        <div class="list-container">
+                            <h2 class="list-title">离心机设备列表</h2>
+                            <div class="table-wrapper">
+                                <table class="device-table" id="deviceTable">
+                                    <thead>
+                                        <tr>
+                                            <th>序号</th>
+                                            <th>离心机名称</th>
+                                            <th>离心机序列号</th>
+                                            <th>ip地址</th>
+                                            <th>状态</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="deviceTableBody">
+                                        <!-- 表格数据将通过JS动态生成 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
-        
-        <div id="info" style="display: none;">
-            <div class="info-box">
-                <strong>状态:</strong> <span id="health-status"></span>
+
+        <!-- 底部状态栏 -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <span id="systemStatus">系统状态栏</span>
             </div>
-            <div class="info-box">
-                <strong>时间戳:</strong> <span id="timestamp"></span>
+            <div class="status-right">
+                <span id="currentTime"></span>
             </div>
-            <div class="info-box">
-                <strong>运行时间:</strong> <span id="uptime"></span> 秒
-            </div>
-            <div class="info-box">
-                <strong>消息:</strong> <span id="message"></span>
-            </div>
-        </div>
-        
-        <button onclick="checkHealth()">检查服务器健康状态</button>
-        
-        <div class="info-box">
-            <strong>API 端点:</strong> <code>/api/health</code><br>
-            <strong>方法:</strong> GET<br>
-            <strong>说明:</strong> 返回服务器健康状态和时间戳
-        </div>
+        </footer>
     </div>
 
-    <script>
-        async function checkHealth() {
-            const statusDiv = document.getElementById('status');
-            const infoDiv = document.getElementById('info');
-            
-            // 显示加载状态
-            statusDiv.innerHTML = '<div class="loading">正在检查服务器状态...</div>';
-            infoDiv.style.display = 'none';
-            
-            try {
-                const response = await fetch('/api/health');
-                const data = await response.json();
-                
-                if (response.ok) {
-                    statusDiv.className = 'status status-ok';
-                    statusDiv.innerHTML = `<h2>✅ 服务器运行正常</h2>`;
-                    
-                    document.getElementById('health-status').textContent = data.status;
-                    document.getElementById('timestamp').textContent = new Date(data.timestamp).toLocaleString();
-                    document.getElementById('uptime').textContent = data.uptime.toFixed(2);
-                    document.getElementById('message').textContent = data.message;
-                    
-                    infoDiv.style.display = 'block';
-                } else {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-            } catch (error) {
-                statusDiv.className = 'status error';
-                statusDiv.innerHTML = `<h3>❌ 检查失败</h3><p>${error.message}</p>`;
-                infoDiv.style.display = 'none';
-            }
-        }
-    </script>
+    <!-- 通信状态提示 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="app.js"></script>
 </body>
 </html>

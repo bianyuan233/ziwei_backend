@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>紫微斗数 AI 解读 - 流式响应演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            flex: 1;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .btn-danger {
+            background: #ff4757;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #ff3344;
+        }
+        
+        .output-section {
+            margin-top: 20px;
+        }
+        
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ccc;
+        }
+        
+        .status-indicator.connecting {
+            background: #ffa502;
+            animation: pulse 1s infinite;
+        }
+        
+        .status-indicator.connected {
+            background: #2ed573;
+        }
+        
+        .status-indicator.error {
+            background: #ff4757;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .output-content {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            min-height: 300px;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .output-content .ai-message {
+            color: #4fc3f7;
+        }
+        
+        .output-content .tool-call {
+            color: #ffb74d;
+        }
+        
+        .output-content .error {
+            color: #ff5252;
+        }
+        
+        .output-content .metadata {
+            color: #81c784;
+        }
+        
+        .loading-dots {
+            display: inline-flex;
+            gap: 4px;
+        }
+        
+        .loading-dots span {
+            width: 6px;
+            height: 6px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        
+        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .metric-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .history-section {
+            margin-top: 20px;
+        }
+        
+        .history-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .history-item {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .history-item:hover {
+            background: #f5f5f5;
+        }
+        
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: #333;
+            color: white;
+            border-radius: 8px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .toast.error {
+            background: #ff4757;
+        }
+        
+        .toast.success {
+            background: #2ed573;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>🔮 紫微斗数 AI 解读</h1>
+            <p class="subtitle">输入您的出生信息，获取 AI 智能解读分析</p>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="birthDate">出生日期</label>
+                    <input type="date" id="birthDate" value="1990-05-15">
+                </div>
+                <div class="form-group">
+                    <label for="timeIndex">出生时辰</label>
+                    <select id="timeIndex">
+                        <option value="0">子时 (23:00-01:00)</option>
+                        <option value="1">丑时 (01:00-03:00)</option>
+                        <option value="2">寅时 (03:00-05:00)</option>
+                        <option value="3">卯时 (05:00-07:00)</option>
+                        <option value="4">辰时 (07:00-09:00)</option>
+                        <option value="5">巳时 (09:00-11:00)</option>
+                        <option value="6" selected>午时 (11:00-13:00)</option>
+                        <option value="7">未时 (13:00-15:00)</option>
+                        <option value="8">申时 (15:00-17:00)</option>
+                        <option value="9">酉时 (17:00-19:00)</option>
+                        <option value="10">戌时 (19:00-21:00)</option>
+                        <option value="11">亥时 (21:00-23:00)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="gender">性别</label>
+                    <select id="gender">
+                        <option value="男" selected>男</option>
+                        <option value="女">女</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="occupation">职业 (可选)</label>
+                <input type="text" id="occupation" placeholder="例如：软件工程师">
+            </div>
+            
+            <div class="form-group">
+                <label for="customPrompt">自定义提示词 (可选)</label>
+                <input type="text" id="customPrompt" placeholder="覆盖默认的 AI 提示词">
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn-primary" id="startBtn" onclick="startStream()">
+                    开始解读
+                </button>
+                <button class="btn-danger" id="cancelBtn" onclick="cancelStream()" style="display: none;">
+                    取消请求
+                </button>
+                <button class="btn-secondary" onclick="clearOutput()">
+                    清空输出
+                </button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="output-section">
+                <div class="status-bar">
+                    <div class="status-indicator" id="statusIndicator"></div>
+                    <span id="statusText">等待开始...</span>
+                    <span id="requestId" style="margin-left: auto; font-size: 12px; color: #999;"></span>
+                </div>
+                
+                <div class="output-content" id="outputContent">
+                    等待输入...
+                </div>
+                
+                <div class="metrics" id="metrics" style="display: none;">
+                    <div class="metric-card">
+                        <div class="metric-value" id="metricAiDataTime">-</div>
+                        <div class="metric-label">数据处理 (ms)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="metricTotalTime">-</div>
+                        <div class="metric-label">总耗时 (ms)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="metricChunks">-</div>
+                        <div class="metric-label">接收块数</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="metricTokens">-</div>
+                        <div class="metric-label">字符数</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="history-section">
+                <h3 style="margin-bottom: 15px;">📜 历史记录</h3>
+                <div class="btn-group" style="margin-bottom: 15px;">
+                    <button class="btn-secondary" onclick="loadHistory()">加载历史</button>
+                    <button class="btn-secondary" onclick="clearHistory()">清空历史</button>
+                </div>
+                <div class="history-list" id="historyList">
+                    <p style="color: #999; text-align: center; padding: 20px;">暂无历史记录</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        const API_BASE_URL = 'http://localhost:3000';
+        let eventSource = null;
+        let currentRequestId = null;
+        let metrics = {
+            chunks: 0,
+            chars: 0,
+            startTime: 0
+        };
+        
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+        
+        function updateStatus(status, text) {
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            
+            indicator.className = 'status-indicator ' + status;
+            statusText.textContent = text;
+        }
+        
+        function appendOutput(content, className = '') {
+            const output = document.getElementById('outputContent');
+            const span = document.createElement('span');
+            span.className = className;
+            span.textContent = content;
+            output.appendChild(span);
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        function startStream() {
+            const birthDate = document.getElementById('birthDate').value;
+            const timeIndex = document.getElementById('timeIndex').value;
+            const gender = document.getElementById('gender').value;
+            const occupation = document.getElementById('occupation').value;
+            const customPrompt = document.getElementById('customPrompt').value;
+            
+            if (!birthDate) {
+                showToast('请选择出生日期', 'error');
+                return;
+            }
+            
+            metrics = { chunks: 0, chars: 0, startTime: Date.now() };
+            
+            document.getElementById('outputContent').innerHTML = '';
+            document.getElementById('metrics').style.display = 'grid';
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('cancelBtn').style.display = 'block';
+            
+            updateStatus('connecting', '正在连接...');
+            
+            const requestBody = {
+                birthDate,
+                timeIndex: parseInt(timeIndex),
+                gender,
+                occupation,
+                customPrompt: customPrompt || undefined
+            };
+            
+            fetch(`${API_BASE_URL}/agent/stream`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'text/event-stream'
+                },
+                body: JSON.stringify(requestBody)
+            }).then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                currentRequestId = response.headers.get('X-Request-Id');
+                document.getElementById('requestId').textContent = `Request ID: ${currentRequestId}`;
+                
+                const aiDataTime = response.headers.get('X-AiData-Process-Time');
+                if (aiDataTime) {
+                    document.getElementById('metricAiDataTime').textContent = aiDataTime;
+                }
+                
+                updateStatus('connected', '已连接，正在接收数据...');
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                
+                function processLine(line) {
+                    if (line.startsWith('data: ')) {
+                        const dataStr = line.slice(6).trim();
+                        if (dataStr) {
+                            try {
+                                const data = JSON.parse(dataStr);
+                                handleStreamData(data);
+                            } catch (e) {
+                                console.error('Parse error:', e);
+                            }
+                        }
+                    }
+                }
+                
+                function read() {
+                    reader.read().then(({ done, value }) => {
+                        if (done) {
+                            updateStatus('connected', '完成');
+                            finishStream();
+                            return;
+                        }
+                        
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop() || '';
+                        
+                        lines.forEach(processLine);
+                        read();
+                    }).catch(error => {
+                        console.error('Read error:', error);
+                        updateStatus('error', '读取错误: ' + error.message);
+                        finishStream();
+                    });
+                }
+                
+                read();
+                
+            }).catch(error => {
+                console.error('Fetch error:', error);
+                updateStatus('error', '连接失败: ' + error.message);
+                appendOutput('\n❌ 连接失败: ' + error.message + '\n', 'error');
+                finishStream();
+            });
+        }
+        
+        function handleStreamData(data) {
+            switch (data.type) {
+                case 'metadata':
+                    appendOutput(`🔗 请求已建立\n`, 'metadata');
+                    document.getElementById('metricAiDataTime').textContent = data.aiDataProcessTime || '-';
+                    break;
+                    
+                case 'chunk':
+                    metrics.chunks++;
+                    const content = data.data?.content || '';
+                    if (content) {
+                        metrics.chars += content.length;
+                        const nodeType = data.data?.type || '';
+                        const className = nodeType.includes('AI') ? 'ai-message' : 
+                                         nodeType.includes('Tool') ? 'tool-call' : '';
+                        appendOutput(content, className);
+                    }
+                    
+                    if (data.data?.tool_calls) {
+                        appendOutput('\n🔧 工具调用: ' + JSON.stringify(data.data.tool_calls, null, 2) + '\n', 'tool-call');
+                    }
+                    break;
+                    
+                case 'done':
+                    const totalTime = data.totalTime || (Date.now() - metrics.startTime);
+                    document.getElementById('metricTotalTime').textContent = totalTime;
+                    document.getElementById('metricChunks').textContent = metrics.chunks;
+                    document.getElementById('metricTokens').textContent = metrics.chars;
+                    appendOutput(`\n\n✅ 完成 (总耗时: ${totalTime}ms)\n`, 'metadata');
+                    break;
+                    
+                case 'error':
+                    appendOutput(`\n❌ 错误: ${data.message}\n`, 'error');
+                    if (data.details) {
+                        appendOutput(`详情: ${JSON.stringify(data.details)}\n`, 'error');
+                    }
+                    break;
+                    
+                case 'raw':
+                    appendOutput(data.data, '');
+                    break;
+            }
+        }
+        
+        function finishStream() {
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('cancelBtn').style.display = 'none';
+            currentRequestId = null;
+        }
+        
+        async function cancelStream() {
+            if (currentRequestId) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/agent/stream/cancel/${currentRequestId}`, {
+                        method: 'POST'
+                    });
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showToast('请求已取消', 'success');
+                        appendOutput('\n⚠️ 请求已被用户取消\n', 'metadata');
+                    }
+                } catch (error) {
+                    showToast('取消失败: ' + error.message, 'error');
+                }
+            }
+            
+            updateStatus('', '已取消');
+            finishStream();
+        }
+        
+        function clearOutput() {
+            document.getElementById('outputContent').innerHTML = '等待输入...';
+            document.getElementById('metrics').style.display = 'none';
+            document.getElementById('requestId').textContent = '';
+            updateStatus('', '等待开始...');
+        }
+        
+        async function loadHistory() {
+            const userId = 'demo_user';
+            const sessionId = 'demo_session';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/agent/history`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, sessionId })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.data && result.data.length > 0) {
+                    const historyList = document.getElementById('historyList');
+                    historyList.innerHTML = '';
+                    
+                    result.data.forEach((item, index) => {
+                        const div = document.createElement('div');
+                        div.className = 'history-item';
+                        div.innerHTML = `
+                            <strong>${item.type}</strong>
+                            <p style="font-size: 12px; color: #666; margin-top: 5px;">
+                                ${item.content ? item.content.substring(0, 100) + '...' : '无内容'}
+                            </p>
+                        `;
+                        historyList.appendChild(div);
+                    });
+                    
+                    showToast(`加载了 ${result.data.length} 条历史记录`, 'success');
+                } else {
+                    showToast('暂无历史记录', 'info');
+                }
+            } catch (error) {
+                showToast('加载历史失败: ' + error.message, 'error');
+            }
+        }
+        
+        function clearHistory() {
+            document.getElementById('historyList').innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">暂无历史记录</p>';
+            showToast('历史记录已清空', 'success');
+        }
+    </script>
+</body>
+</html>
