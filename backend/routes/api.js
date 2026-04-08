@@ -74,6 +74,11 @@ function getYearlyPeriods(astrolabe) {
     }
 
     const birthYear = parseInt(astrolabe.solarDate.split('-')[0]);
+    const birthLunarMonth = astrolabe.rawDates.lunarDate.lunarMonth;
+    const birthTimeBranch = astrolabe.rawDates.chineseDate.hourly[1];
+    const earthlyBranches = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+    const birthTimeIndex = earthlyBranches.indexOf(birthTimeBranch);
+    
     const yearlyPeriods = [];
 
     for (let i = 0; i < 12; i++) {
@@ -82,15 +87,23 @@ function getYearlyPeriods(astrolabe) {
         
         try {
             const horoscopeData = astrolabe.horoscope(targetDate);
-            const palaces = horoscopeData.yearly.palaceNames.map((name, idx) => ({
-                index: idx,
-                name: name,
-                month: idx + 1
-            }));
-            const age = horoscopeData.age.nominalAge;
+            const currentAge = horoscopeData.age.nominalAge;
+            const yearlyIndex = horoscopeData.yearly.index;
+            
+            const firstMonthIndex = ((yearlyIndex - birthLunarMonth + birthTimeIndex + 1) % 12 + 12) % 12;
+            
+            const palaces = horoscopeData.yearly.palaceNames.map((name, idx) => {
+                const month = ((idx - firstMonthIndex + 12) % 12) + 1;
+                
+                return {
+                    index: idx,
+                    name: name,
+                    month: month
+                };
+            });
             
             yearlyPeriods.push({
-                age: age,
+                age: currentAge,
                 palaces: palaces
             });
         } catch (e) {
@@ -103,7 +116,6 @@ function getYearlyPeriods(astrolabe) {
 
     return yearlyPeriods;
 }
-
 function getBySolarData(astrolabeBySolar) {
     if (!astrolabeBySolar) {
         return null;
