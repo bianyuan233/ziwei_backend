@@ -1,0 +1,482 @@
+toolName: todo_write
+            
+status: success
+          
+Todos updated: 5 items
+          
+
+        
+            
+toolName: view_folder
+            
+status: success
+          
+/home/ubuntu/ziwei_agent/workspace
+          
+
+        
+            
+toolName: file_search
+            
+status: success
+          
+file_pattern: **/*
+          
+现在让我并行读取所有核心源代码文件：
+        
+            
+toolName: view_files
+            
+status: success
+          
+            
+filePath: /home/ubuntu/ziwei_agent/workspace/client.py
+          
+
+        
+            
+toolName: view_files
+            
+status: success
+          
+            
+filePath: /home/ubuntu/ziwei_agent/workspace/app.py
+          
+
+        
+            
+toolName: view_files
+            
+status: success
+          
+            
+filePath: /home/ubuntu/ziwei_agent/workspace/agent.py
+          
+
+        
+            
+toolName: view_files
+            
+status: success
+          
+            
+filePath: /home/ubuntu/ziwei_agent/workspace/llm.py
+          
+
+        
+            
+toolName: view_files
+            
+status: success
+          
+            
+filePath: /home/ubuntu/ziwei_agent/workspace/rule_engine.py
+          
+
+        
+            
+toolName: view_files
+            
+status: success
+          
+            
+filePath: /home/ubuntu/ziwei_agent/workspace/rule_const.py
+          
+
+        
+            
+toolName: view_files
+            
+status: success
+          
+            
+filePath: /home/ubuntu/ziwei_agent/workspace/ziwei_const.py
+          
+
+        
+            
+toolName: view_files
+            
+status: success
+          
+            
+filePath: /home/ubuntu/ziwei_agent/workspace/ziwei_person.py
+          
+
+        
+            
+toolName: view_files
+            
+status: success
+          
+            
+filePath: /home/ubuntu/ziwei_agent/workspace/备忘.txt
+          
+
+        
+            
+toolName: view_files
+            
+status: success
+          
+            
+filePath: /home/ubuntu/ziwei_agent/workspace/test.json
+          
+
+        
+            
+toolName: view_files
+            
+status: success
+          
+            
+filePath: /home/ubuntu/ziwei_agent/workspace/.vscode/settings.json
+          
+现在让我检查一下虚拟环境和任何已安装的依赖：
+        
+            
+toolName: view_folder
+            
+status: success
+          
+/home/ubuntu/ziwei_agent
+          
+
+        
+            
+toolName: view_folder
+            
+status: success
+          
+/home/ubuntu/ziwei_agent/env/ziwei/lib/python3.12/site-packages
+          
+
+        
+            
+toolName: todo_write
+            
+status: success
+          
+Todos updated: 5 items
+          
+以下是对 `/home/ubuntu/ziwei_agent/workspace` 项目的全面分析及 [client.py](file:///home/ubuntu/ziwei_agent/workspace/client.py) 的详细调用方法说明。
+
+---
+
+## 一、项目概述
+
+这是一个**紫微斗数 AI 命理咨询系统**（Ziwei Agent），基于 LangGraph 构建 Agent 工作流，结合规则引擎和 LLM（大语言模型），为用户提供基于紫微斗数命盘的健康运势等命理咨询服务。系统采用 FastAPI 提供 REST API，支持流式响应（SSE）。
+
+---
+
+## 二、项目结构
+
+```
+workspace/
+├── app.py              # FastAPI 服务入口，定义 API 路由
+├── agent.py            # LangGraph Agent 核心逻辑，定义工作流图
+├── client.py           # 客户端测试脚本，调用 API 接口
+├── llm.py              # LLM 请求封装（OpenAI 兼容接口）
+├── ziwei_person.py     # 紫微命盘数据模型 Person 类
+├── ziwei_const.py      # 紫微斗数常量定义（天干、地支、宫位、四化等）
+├── rule_engine.py      # 规则引擎，解析和执行命理规则
+├── rule_const.py       # 健康运势规则常量（前提规则 + 定位规则）
+├── test.json           # 测试命盘数据
+├── database/
+│   └── chat.db         # SQLite 数据库（LangGraph 会话持久化）
+├── fates/
+│   └── user123*_*session456.json  # 用户命盘文件存储
+├── logs/
+│   └── user123*_*session456.log   # 会话日志文件
+├── __pycache__/        # Python 编译缓存
+├── .vscode/
+│   └── settings.json   # VS Code 配置
+└── 备忘.txt             # 运行备忘
+```
+
+---
+
+## 三、主要功能模块
+
+### 1. API 服务层 — [app.py](file:///home/ubuntu/ziwei_agent/workspace/app.py)
+
+| 接口 | 方法 | 功能 | 请求体 |
+|------|------|------|--------|
+| `/chat/gen_fate` | POST | 初始化/写入命盘数据 | `{user_id, session_id, user_fate}` |
+| `/chat/stream` | POST | 流式聊天（SSE） | `{user_id, session_id, message}` |
+| `/chat/history` | POST | 查询历史记录 | `{user_id, session_id}` |
+
+- 使用 `AsyncSqliteSaver` 作为 LangGraph 的 checkpointer，实现会话持久化
+- 流式响应采用 Server-Sent Events (SSE) 格式，`media_type="text/event-stream"`
+- 会话 ID 格式：`{user_id}*_*{session_id}`
+
+### 2. Agent 核心层 — [agent.py](file:///home/ubuntu/ziwei_agent/workspace/agent.py)
+
+LangGraph StateGraph 工作流：
+
+```
+START → fate_agent → [有工具调用?] → tool_node → fate_agent (循环)
+                    → [无工具调用?] → END
+```
+
+- **fate_agent 节点**：调用 LLM（MiniMax-M2.7），根据命盘信息构建 system prompt，决定是否调用工具
+- **tool_node 节点**：执行工具调用（目前仅 `health_fate` 工具）
+- **should_continue_fate_agent**：条件路由，判断是否需要继续调用工具
+
+### 3. 命盘数据模型 — [ziwei_person.py](file:///home/ubuntu/ziwei_agent/workspace/ziwei_person.py)
+
+`Person` 类封装了紫微斗数命盘的完整数据结构和操作：
+
+- **数据提取**：从 JSON 解析本命盘、大限盘、流年盘
+- **规则原子函数**：
+  - `palace_hua_palace()` — 天干化判断（某宫天干化某星到某宫）
+  - `palace_hua()` — 生年化判断（某宫是否有某四化）
+  - `palace_have_star()` — 有星判断（某宫是否有某星，支持借宫）
+  - `get_opposite_palace()` — 借宫（对宫查询）
+
+### 4. 规则引擎 — [rule_engine.py](file:///home/ubuntu/ziwei_agent/workspace/rule_engine.py)
+
+`RuleEngine` 类实现规则解析和执行：
+
+- 支持三种规则函数：`天干化`、`有生年`、`有星`
+- 使用正则表达式从规则文本中提取参数
+- 支持逻辑组合（`and`、`or`）
+- 通过 `eval()` 执行组合后的布尔表达式
+
+### 5. 规则常量 — [rule_const.py](file:///home/ubuntu/ziwei_agent/workspace/rule_const.py)
+
+定义了健康运势的两大规则集：
+
+- **JIANKANG_PRE_RULE**（前提规则，A~F 类共 60+ 条）：判断大限级别的健康风险
+- **JIANKANG_LOC_RULE**（定位规则，9 条）：在前提条件满足时，定位具体发病年份和手术判定
+
+### 6. LLM 封装 — [llm.py](file:///home/ubuntu/ziwei_agent/workspace/llm.py)
+
+封装 OpenAI 兼容接口的调用：
+- 支持 `reasoning_split`（思维链分离）
+- 支持 JSON 格式输出
+- 提取 `reasoning_details` 和 `reasoning_content`
+
+### 7. 常量定义 — [ziwei_const.py](file:///home/ubuntu/ziwei_agent/workspace/ziwei_const.py)
+
+定义紫微斗数核心常量：
+- 命盘维度：本命、大限、流年
+- 天干地支：甲乙丙丁…、子丑寅卯…
+- 十二宫：命宫、父母、福德、田宅、官禄、仆役、迁移、疾厄、财帛、子女、夫妻、兄弟
+- 四化：禄、权、科、忌
+- 主星 14 颗、辅星 14 颗、杂曜 37 颗
+- 天干四化映射表 `SKYHUA`
+
+---
+
+## 四、技术栈及依赖关系
+
+### 核心技术栈
+
+| 类别 | 技术 | 用途 |
+|------|------|------|
+| Web 框架 | **FastAPI** | REST API 服务 |
+| ASGI 服务器 | **Uvicorn** | 运行 FastAPI |
+| AI Agent 框架 | **LangGraph** | 构建工作流状态图 |
+| LLM | **ChatAnthropic** (langchain_anthropic) | 调用 MiniMax-M2.7 模型 |
+| LLM 提供商 | **MiniMax** (Anthropic 兼容接口) | 模型推理服务 |
+| 数据验证 | **Pydantic** | 请求体模型定义 |
+| 数据库 | **SQLite** (aiosqlite) | 会话持久化 |
+| HTTP 客户端 | **requests** / **OpenAI** | API 调用 |
+
+### 模块依赖关系图
+
+```
+client.py
+  └── agent.py (导入 pwd)
+
+app.py
+  ├── agent.py (导入 get_agent_builder, pre_path, pwd)
+  ├── ziwei_person.py (导入 Person)
+  └── langgraph.checkpoint.sqlite.aio (AsyncSqliteSaver)
+
+agent.py
+  ├── rule_const.py (导入 JIANKANG_LOC_RULE, JIANKANG_PRE_RULE)
+  ├── rule_engine.py (导入 RuleEngine)
+  ├── ziwei_person.py (导入 Person)
+  ├── ziwei_const.py (间接，通过 rule_const)
+  └── langchain_anthropic (ChatAnthropic)
+
+rule_engine.py
+  ├── ziwei_const.py (导入常量)
+  ├── rule_const.py (导入常量)
+  └── ziwei_person.py (导入 Person)
+
+ziwei_person.py
+  └── ziwei_const.py (导入常量)
+
+rule_const.py
+  └── ziwei_const.py (导入常量)
+```
+
+### Python 环境
+
+- Python 3.12
+- 虚拟环境路径：`/home/ubuntu/ziwei_agent/env/ziwei/`
+
+---
+
+## 五、client.py 详细调用方法
+
+### 文件位置
+
+[client.py](file:///home/ubuntu/ziwei_agent/workspace/client.py)
+
+### 功能概述
+
+`client.py` 是一个 HTTP 客户端测试脚本，用于调用 `app.py` 启动的 FastAPI 服务提供的三个 API 接口。它包含三个测试函数：
+
+| 函数 | 调用接口 | 功能 |
+|------|----------|------|
+| `test_chat_gen_fate()` | `/chat/gen_fate` | 初始化命盘数据 |
+| `test_get_history()` | `/chat/history` | 查询历史记录 |
+| `test_chat_stream()` | `/chat/stream` | 流式聊天 |
+
+### 执行命令
+
+```bash
+# 1. 先启动服务端（在另一个终端）
+/home/ubuntu/ziwei_agent/env/ziwei/bin/python /home/ubuntu/ziwei_agent/workspace/app.py
+
+# 2. 再运行客户端
+/home/ubuntu/ziwei_agent/env/ziwei/bin/python /home/ubuntu/ziwei_agent/workspace/client.py
+```
+
+### 前置条件
+
+1. **服务端必须先启动**：`app.py` 需要在 `http://127.0.0.1:8000` 上运行
+2. **命盘数据文件**：`test.json` 必须存在于 workspace 目录下，且包含合法的紫微斗数命盘 JSON 数据（格式需包含 `data.bySolar`、`data.majorPeriods`、`data.yearlyPeriods` 等字段）
+3. **API Key 有效**：`agent.py` 中硬编码的 MiniMax API Key 必须有效（`sk-cp-eUTDFfHY...`）
+4. **网络连通**：需能访问 `https://api.minimaxi.com/anthropic`
+
+### 参数配置
+
+在 [client.py](file:///home/ubuntu/ziwei_agent/workspace/client.py#L7-L8) 中有两个可配置的常量：
+
+```python
+USER_ID = "user123"       # 用户标识
+SESSION_ID = "session456"  # 会话标识
+```
+
+- 这两个值决定了命盘文件的存储路径（`fates/{USER_ID}*_*{SESSION_ID}.json`）和数据库中的会话线程 ID
+- **必须保证 `gen_fate` 和 `stream` 使用相同的 user_id 和 session_id**，否则聊天时找不到命盘数据
+
+### 三个接口的详细调用流程
+
+#### 1. `test_chat_gen_fate()` — 初始化命盘
+
+```python
+# 请求地址
+POST http://127.0.0.1:8000/chat/gen_fate
+
+# 请求体
+{
+    "user_id": "user123",
+    "session_id": "session456",
+    "user_fate": <test.json 中 data 字段的内容>
+}
+```
+
+**执行逻辑**：
+1. 读取 `test.json` 文件中的 `data` 字段
+2. 将命盘数据 POST 到服务端
+3. 服务端将命盘写入 `fates/user123*_*session456.json`
+4. 返回 `{'success': True}` 或 `{'success': False}`
+
+**成功验证**：控制台输出 `已完成初始化`
+
+#### 2. `test_chat_stream()` — 流式聊天
+
+```python
+# 请求地址
+POST http://127.0.0.1:8000/chat/stream
+
+# 请求体
+{
+    "user_id": "user123",
+    "session_id": "session456",
+    "message": "我今年健康方面的运势怎么样？"
+}
+```
+
+**执行逻辑**：
+1. 以 SSE 流式方式发送请求
+2. 逐行读取响应，解析 `data: ` 前缀的 JSON
+3. 打印每个节点的信息（节点名、路径、内容、工具调用）
+
+**SSE 响应格式**：
+```json
+{
+    "path": "fate_agent",
+    "node": "fate_agent",
+    "type": "AIMessage",
+    "content": "...",
+    "tool_calls": [...]
+}
+```
+
+**成功验证**：控制台持续输出 `>> 节点: xxx (路径: xxx)` 格式的流式内容
+
+#### 3. `test_get_history()` — 查询历史（默认被注释）
+
+```python
+# 请求地址
+POST http://127.0.0.1:8000/chat/history
+
+# 请求体
+{
+    "user_id": "user123",
+    "session_id": "session456"
+}
+```
+
+**成功验证**：输出 `找到 N 条消息记录` 并逐条显示
+
+### 默认执行顺序
+
+在 [client.py:143-146](file:///home/ubuntu/ziwei_agent/workspace/client.py#L143-L146) 中：
+
+```python
+if __name__ == "__main__":
+    test_chat_gen_fate()    # 第一步：初始化命盘
+    test_chat_stream()      # 第二步：发起聊天
+    # test_get_history()    # 第三步：查询历史（默认注释）
+```
+
+**必须按此顺序执行**：先初始化命盘，再发起聊天，否则 Agent 无法获取命盘数据。
+
+### 常见问题处理
+
+| 问题 | 原因 | 解决方案 |
+|------|------|----------|
+| `ConnectionRefusedError` | 服务端未启动 | 先运行 `app.py` 启动服务 |
+| `初始化失败` | 命盘 JSON 写入失败 | 检查 `fates/` 目录权限和 `test.json` 格式 |
+| `无法获取命盘数据` | 未先调用 `gen_fate` | 确保先执行 `test_chat_gen_fate()` |
+| `运势平稳`（无具体分析） | 命盘数据与规则不匹配 | 正常情况，表示该时段无重大健康风险 |
+| `请求失败，状态码: 4xx/5xx` | API 参数错误或服务端异常 | 检查请求体格式和服务端日志 |
+| LLM 调用超时 | MiniMax API 不可用或 Key 过期 | 检查网络和 API Key 有效性 |
+| `错误的参数组合` | `health_fate` 工具未传 year 或 age | LLM 应自动传入参数，若未传则检查模型输出 |
+
+### 成功执行的验证标准
+
+1. **命盘初始化成功**：`test_chat_gen_fate()` 输出 `已完成初始化`
+2. **命盘文件已创建**：`fates/user123*_*session456.json` 文件存在且内容非空
+3. **流式响应正常**：`test_chat_stream()` 输出包含 `>> 节点:` 格式的多行内容
+4. **工具调用正常**：响应中出现 `fate_agent → tool_node → fate_agent` 的循环路径
+5. **AI 回复完整**：最终节点输出的 content 包含基于命盘的健康运势分析
+
+---
+        
+            
+toolName: todo_write
+            
+status: success
+          
+Todos updated: 5 items
+          
+分析已全部完成。总结来说，这是一个**紫微斗数 AI 命理咨询系统**，核心架构为 `FastAPI + LangGraph + MiniMax LLM + 规则引擎`。`client.py` 作为客户端测试脚本，必须**先启动 app.py 服务端**，然后**按顺序调用**：先 `gen_fate` 初始化命盘 → 再 `stream` 发起聊天 → 可选 `history` 查询历史。关键注意点是 user_id 和 session_id 必须在三个接口间保持一致，且 MiniMax API Key 需要有效。
