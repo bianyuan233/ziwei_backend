@@ -86,6 +86,32 @@ function _makeRequest(urlStr, body) {
   });
 }
 
+function normaliseContentPayload(payload) {
+  if (typeof payload === 'string') return payload;
+
+  if (Array.isArray(payload)) {
+    return payload
+      .map(item => {
+        if (typeof item === 'string') return item;
+        if (!item || typeof item !== 'object') return '';
+        if (item.type && item.type !== 'text' && item.type !== 'output_text') return '';
+        if (typeof item.text === 'string') return item.text;
+        if (typeof item.content === 'string') return item.content;
+        return '';
+      })
+      .filter(Boolean)
+      .join('');
+  }
+
+  if (payload && typeof payload === 'object') {
+    if (payload.type && payload.type !== 'text' && payload.type !== 'output_text') return '';
+    if (typeof payload.text === 'string') return payload.text;
+    if (typeof payload.content === 'string') return payload.content;
+  }
+
+  return '';
+}
+
 // Calls upstream /chat/gen_fate to register the natal chart context for a session.
 async function initFate(userId, sessionId, userFate) {
   const res = await _makeRequest(`${CONFIG.baseUrl}/chat/gen_fate`, {
@@ -173,8 +199,8 @@ async function* streamChatMessage(userId, sessionId, message, options = {}) {
         try {
           const parsed = JSON.parse(raw);
           // Normalise upstream delta formats: {content}, {delta}, {text}, or raw string
-          const content = parsed.content ?? parsed.delta ?? parsed.text ?? null;
-          if (typeof content === 'string' && content) yield content;
+          const content = normaliseContentPayload(parsed.content ?? parsed.delta ?? parsed.text ?? null);
+          if (content) yield content;
         } catch {
           // upstream sent a non-JSON fragment; yield as-is
           yield raw;

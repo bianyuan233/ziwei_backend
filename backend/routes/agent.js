@@ -189,7 +189,7 @@ router.post('/stream', async (req, res) => {
 
   try {
     // 6. Register natal chart context with upstream agent
-    await initFate(userId, sessionId, userFate);
+    await initFate(userId, sessionId, aiData);
 
     // 7. Stream the conversational answer
     for await (const content of streamChatMessage(userId, sessionId, question, { requestId })) {
