@@ -76,6 +76,9 @@ app.use('/api', require('./routes/api'));
 // 离心机监控API路由
 app.use('/api', require('./routes/centrifuge'));
 
+// AI 流式问答路由
+app.use('/api/agent', require('./routes/agent'));
+
 // 错误处理中间件
 app.use((err, req, res, next) => {
   console.error(err.stack);
