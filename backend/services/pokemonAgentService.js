@@ -1,9 +1,10 @@
 const http = require('http');
 const https = require('https');
 const { URL } = require('url');
+const { StringDecoder } = require('string_decoder');
 
 const CONFIG = {
-  baseUrl: process.env.POKEMON_AGENT_BASE_URL || 'http://localhost:8000',
+  baseUrl: process.env.POKEMON_AGENT_BASE_URL || 'http://127.0.0.1:8000',
   timeout: parseInt(process.env.POKEMON_AGENT_TIMEOUT) || 120000
 };
 
@@ -112,6 +113,51 @@ function normaliseContentPayload(payload) {
   return '';
 }
 
+function getAssistantContent(parsed) {
+  const payload = parsed && parsed.type === 'chunk' && parsed.data ? parsed.data : parsed;
+  if (!payload || typeof payload !== 'object') return '';
+
+  const messageType = String(payload.type || '').toLowerCase();
+  if (messageType.includes('tool') || messageType.includes('human') || messageType.includes('system')) {
+    return '';
+  }
+
+  const content = normaliseContentPayload(payload.content ?? payload.delta ?? payload.text ?? null);
+  if (!content || looksLikeInternalDump(content)) return '';
+  return content;
+}
+
+function looksLikeInternalDump(content) {
+  const text = String(content || '').trim();
+  if (!text) return false;
+
+  // Prevent Python dict / internal chart data from being displayed as an answer.
+  if (/^\{['"]?\d{4}['"]?\s*:/.test(text) && /['"]status['"]\s*:/.test(text)) return true;
+  if (/^\{.*['"]details['"]\s*:/s.test(text) && /['"]index['"]\s*:/s.test(text)) return true;
+
+  return false;
+}
+
+function parseAgentSseLine(line) {
+  if (!line.startsWith('data: ')) return '';
+
+  const raw = line.slice(6).trim();
+  if (!raw || raw === '[DONE]') return '';
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.type === 'error') {
+      const message = parsed.message || parsed.error?.message || parsed.detail || '上游 Agent 返回错误';
+      throw new PokemonAgentError(message, 'UPSTREAM_STREAM_ERROR', null, parsed);
+    }
+    return getAssistantContent(parsed);
+  } catch (err) {
+    if (err instanceof PokemonAgentError) throw err;
+    console.warn('Ignoring non-JSON agent SSE line:', raw.slice(0, 120));
+    return '';
+  }
+}
+
 // Calls upstream /chat/gen_fate to register the natal chart context for a session.
 async function initFate(userId, sessionId, userFate) {
   const res = await _makeRequest(`${CONFIG.baseUrl}/chat/gen_fate`, {
@@ -185,27 +231,23 @@ async function* streamChatMessage(userId, sessionId, message, options = {}) {
       );
     }
 
+    const decoder = new StringDecoder('utf8');
     let buffer = '';
     for await (const chunk of response) {
-      buffer += chunk.toString();
+      buffer += decoder.write(chunk);
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
 
       for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const raw = line.slice(6).trim();
-        if (!raw || raw === '[DONE]') continue;
-
-        try {
-          const parsed = JSON.parse(raw);
-          // Normalise upstream delta formats: {content}, {delta}, {text}, or raw string
-          const content = normaliseContentPayload(parsed.content ?? parsed.delta ?? parsed.text ?? null);
-          if (content) yield content;
-        } catch {
-          // upstream sent a non-JSON fragment; yield as-is
-          yield raw;
-        }
+        const content = parseAgentSseLine(line);
+        if (content) yield content;
       }
+    }
+
+    buffer += decoder.end();
+    if (buffer.trim()) {
+      const content = parseAgentSseLine(buffer);
+      if (content) yield content;
     }
   } catch (err) {
     if (err.name === 'AbortError') {
