@@ -125,14 +125,28 @@ function getAiDataInternal(birthDate, timeIndexNum, gender) {
 // ── SSE helper ────────────────────────────────────────────────────────────────
 
 function sseHeaders(res, requestId) {
-  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
   res.setHeader('X-Request-Id', requestId);
+  if (typeof res.flushHeaders === 'function') {
+    res.flushHeaders();
+  }
 }
 
 function writeSSE(res, obj) {
   res.write(`data: ${JSON.stringify(obj)}\n\n`);
+}
+
+function createSseHeartbeat(res) {
+  const timer = setInterval(() => {
+    if (!res.writableEnded && !res.destroyed) {
+      writeSSE(res, { type: 'ping', timestamp: Date.now() });
+    }
+  }, 10000);
+
+  return () => clearInterval(timer);
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────
@@ -186,6 +200,16 @@ router.post('/stream', async (req, res) => {
   // 5. Open SSE channel and emit meta
   sseHeaders(res, requestId);
   writeSSE(res, { type: 'meta', requestId, sessionId });
+  const stopHeartbeat = createSseHeartbeat(res);
+  let clientClosed = false;
+
+  res.on('close', () => {
+    clientClosed = !res.writableEnded;
+    stopHeartbeat();
+    if (clientClosed) {
+      cancelRequest(requestId);
+    }
+  });
 
   try {
     // 6. Register natal chart context with upstream agent
@@ -193,15 +217,22 @@ router.post('/stream', async (req, res) => {
 
     // 7. Stream the conversational answer
     for await (const content of streamChatMessage(userId, sessionId, question, { requestId })) {
+      if (clientClosed) return;
       writeSSE(res, { type: 'delta', content });
     }
 
-    writeSSE(res, { type: 'done' });
-    res.end();
+    if (!clientClosed) {
+      writeSSE(res, { type: 'done' });
+      res.end();
+    }
   } catch (err) {
     console.error('Agent stream error:', err.message);
-    writeSSE(res, { type: 'error', message: err.message });
-    res.end();
+    if (!clientClosed) {
+      writeSSE(res, { type: 'error', message: err.message });
+      res.end();
+    }
+  } finally {
+    stopHeartbeat();
   }
 });
 
