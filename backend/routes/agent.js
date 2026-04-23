@@ -139,6 +139,19 @@ function writeSSE(res, obj) {
   res.write(`data: ${JSON.stringify(obj)}\n\n`);
 }
 
+function createProgressWriter(res, startedAt) {
+  return (stage, message) => {
+    if (!res.writableEnded && !res.destroyed) {
+      writeSSE(res, {
+        type: 'progress',
+        stage,
+        message,
+        elapsedMs: Date.now() - startedAt
+      });
+    }
+  };
+}
+
 function createSseHeartbeat(res) {
   const timer = setInterval(() => {
     if (!res.writableEnded && !res.destroyed) {
@@ -156,6 +169,7 @@ function createSseHeartbeat(res) {
 // Response: SSE stream  meta → delta* → done | error
 router.post('/stream', async (req, res) => {
   const requestId = genId();
+  const startedAt = Date.now();
   const { birthDate, timeIndex, gender, occupation, userId, sessionId, question } = req.body;
 
   // 1. Validate
@@ -200,6 +214,8 @@ router.post('/stream', async (req, res) => {
   // 5. Open SSE channel and emit meta
   sseHeaders(res, requestId);
   writeSSE(res, { type: 'meta', requestId, sessionId });
+  const writeProgress = createProgressWriter(res, startedAt);
+  writeProgress('chart_ready', '命盘数据已准备，正在连接分析引擎...');
   const stopHeartbeat = createSseHeartbeat(res);
   let clientClosed = false;
 
@@ -213,11 +229,18 @@ router.post('/stream', async (req, res) => {
 
   try {
     // 6. Register natal chart context with upstream agent
+    writeProgress('fate_registering', '正在登记命盘上下文...');
     await initFate(userId, sessionId, aiData);
 
     // 7. Stream the conversational answer
+    writeProgress('agent_thinking', '分析引擎正在推演...');
+    let hasContent = false;
     for await (const content of streamChatMessage(userId, sessionId, question, { requestId })) {
       if (clientClosed) return;
+      if (!hasContent) {
+        hasContent = true;
+        writeProgress('streaming', '正在生成回答...');
+      }
       writeSSE(res, { type: 'delta', content });
     }
 
